@@ -1,0 +1,22 @@
+{
+  "name": "molecule-vizualisation",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/MoleculeVizualisation.js",
+  "scripts": {
+    "build": "webpack --mode=production",
+    "dev": "webpack --mode=development --watch"
+  },
+  "author": "",
+  "license": "ISC",
+  "eslintConfig": {
+    "extends": "eslint-config-qvvdata"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.2.2",
+    "babel-loader": "^8.0.5",
+    "eslint-config-qvvdata": "github:qvvdata/eslint-config-qvvdata",
+    "webpack": "^4.28.1",
+    "webpack-cli": "^3.2.1"
+  }
+}
