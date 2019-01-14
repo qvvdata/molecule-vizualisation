@@ -10,13 +10,21 @@
   "author": "",
   "license": "ISC",
   "eslintConfig": {
-    "extends": "eslint-config-qvvdata"
+    "extends": "eslint-config-qvvdata",
+    "globals": {
+        "document": true,
+        "requestAnimationFrame": true
+    }
   },
   "devDependencies": {
     "@babel/core": "^7.2.2",
     "babel-loader": "^8.0.5",
     "eslint-config-qvvdata": "github:qvvdata/eslint-config-qvvdata",
+    "rstatsjs": "github:spite/rstats",
     "webpack": "^4.28.1",
     "webpack-cli": "^3.2.1"
+  },
+  "dependencies": {
+    "pixi.js": "^4.8.5"
   }
 }

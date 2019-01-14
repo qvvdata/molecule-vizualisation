@@ -10,17 +10,19 @@
 
     <div id="chart-holder"></div>
 <script type="module">
-    import './dist/MoleculeVizualisation.js';
+import './dist/MoleculeVizualisation.js';
 
-    const settings = {
+const settings = {
+    debug: true
+};
 
-    };
+const moleculeVizualisation = new MoleculeVizualisation(
+    document, '#chart-holder', settings
+);
 
-    const moleculeVizualisation = new MoleculeVizualisation(
-        document, '#chart-holder', settings
-    );
-
-    console.log(moleculeVizualisation);
+moleculeVizualisation.fillWithRandomData(100)
+    .init()
+    .render();
 </script>
 </body>
 </html>

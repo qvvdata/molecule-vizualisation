@@ -10,6 +10,50 @@ body {
     position: relative;
 }
 
+/**
+ * RStats styling.
+ */
+.rs-container {
+    background: rgba(0, 0, 0, .8);
+    color: #FFF;
+    left: 0;
+    overflow: hidden;
+    padding: 10px;
+    position: fixed;
+    top: 0;
+    width: 350px;
+}
+    .rs-container h1 {
+        font-size: 14px;
+        margin: 0 0 5px 0
+    }
+
+    .rs-container .rs-group {
+        margin-bottom: 10px;
+    }
+
+    .rs-container .rs-counter-base {
+        position: relative;
+    }
+        .rs-container .rs-counter-id {
+            display: inline-block;
+            font-size: 10px;
+            width: 93px;
+        }
+
+        .rs-container .rs-counter-value {
+            display: inline-block;
+            font-size: 10px;
+            text-align: right;
+            width: 30px;
+        }
+
+        .rs-container canvas {
+            position: absolute;
+            right: 0;
+            top: 0;
+        }
+
 #chart-holder {
     height: 750px;
     left: 50%;
