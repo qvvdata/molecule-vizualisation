@@ -12,8 +12,8 @@
   "eslintConfig": {
     "extends": "eslint-config-qvvdata",
     "globals": {
-        "document": true,
-        "requestAnimationFrame": true
+      "document": true,
+      "requestAnimationFrame": true
     }
   },
   "devDependencies": {
@@ -25,6 +25,8 @@
     "webpack-cli": "^3.2.1"
   },
   "dependencies": {
+    "dat.gui": "^0.7.5",
+    "pixi-ease": "^1.1.2",
     "pixi.js": "^4.8.5"
   }
 }

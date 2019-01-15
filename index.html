@@ -13,16 +13,17 @@
 import './dist/MoleculeVizualisation.js';
 
 const settings = {
-    debug: true
+    debug: false,
+    performanceMonitoring: true,
 };
 
 const moleculeVizualisation = new MoleculeVizualisation(
     document, '#chart-holder', settings
 );
 
-moleculeVizualisation.fillWithRandomData(100)
+moleculeVizualisation.fillWithRandomData(4000)
     .init()
-    .render();
+    .startRenderLoop();
 </script>
 </body>
 </html>

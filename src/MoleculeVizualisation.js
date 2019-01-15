@@ -1,8 +1,10 @@
 import Helpers from './Helpers';
 import MLCV_ENUMS from './enums';
+import MlcvEditor from './MoleculeVizualisationEditor';
 import Molecule from './Molecule';
 import * as PIXI from '../node_modules/pixi.js/dist/pixi';
-import RStats from '../node_modules/rstatsjs/src/rStats.js';
+import PixiEase from '../node_modules/pixi-ease/bundle/pixi-ease';
+import RStats from '../node_modules/rstatsjs/src/rStats';
 
 /**
  *
@@ -65,7 +67,9 @@ export default class MoleculeVizualisation {
         this.defaultSettings = {
             // This will turn on some visuals and statistics for the chart so
             // you have a better view on what is going on.
-            debug: false
+            debug: false,
+
+            performanceMonitoring: false
         };
 
         /**
@@ -93,7 +97,12 @@ export default class MoleculeVizualisation {
 
         this.molecules = [];
 
-        if (this.settings.debug === true) {
+
+        if (this.settings.editor === true) {
+            this.editor = new MlcvEditor(document, this);
+        }
+
+        if (this.settings.performanceMonitoring === true) {
             // Activate stats and log this class for use in the console.
             this.rStats = new RStats({
                 values: {
@@ -108,7 +117,9 @@ export default class MoleculeVizualisation {
                     { caption: 'Frame Budget', values: ['frame', 'render'] }
                 ]
             });
+        }
 
+        if (this.settings.debug === true) {
             this.drawRulers();
 
             // Log the chart to the console for inspection.
@@ -126,7 +137,7 @@ export default class MoleculeVizualisation {
                 x,
                 y,
                 4,
-                50
+                25 + Math.random() * 25
             );
 
             this.molecules.push(molecule);
@@ -150,24 +161,35 @@ export default class MoleculeVizualisation {
         return this;
     }
 
+    startRenderLoop() {
+        this.paused = false;
+        this.then = Date.now();
+        this.render();
+
+        return this;
+    }
+
     /**
      * Renders all the layers.
      *
      * @return {ForceRadarScatterplot}
      */
     render() {
-        if (this.settings.debug === true) {
+        const now = Date.now();
+
+        if (this.settings.performanceMonitoring === true) {
             this.rStats('frame').start();
             this.rStats('rAF').tick();
             this.rStats('FPS').frame();
         }
 
 
+        const elapsed = now - this.then;
         for (let i = 0; i < this.molecules.length; i++) {
-            this.molecules[i].render();
+            this.molecules[i].render(elapsed);
         }
 
-        if (this.settings.debug === true) {
+        if (this.settings.performanceMonitoring === true) {
             this.rStats('frame').end();
             this.rStats().update();
         }
@@ -176,6 +198,7 @@ export default class MoleculeVizualisation {
             this.render();
         });
 
+        this.then = now;
         return this;
     }
 
@@ -199,15 +222,23 @@ export default class MoleculeVizualisation {
         const baseStyles = [
             'position: absolute',
             'height: 1px',
-            'width: 100%',
             'left: 0',
             'top: 50%',
             'background: #00F',
             'transform-origin: center'
         ];
 
-        const horizontalRuleStyles = baseStyles.concat(['transform: translate(0, -50%)']);
-        const verticalRuleStyles = baseStyles.concat(['transform: translate(0, -50%) rotate(90deg)']);
+        const horizontalRuleStyles = baseStyles.concat([
+            'transform: translate(0, -50%)',
+            'width: 100%'
+        ]);
+
+        const verticalRuleStyles = baseStyles.concat([
+            'height: 100%',
+            'left: 50%',
+            'transform: translate(0, -50%)',
+            'width: 1px'
+        ]);
 
         rulerHorizontal.setAttribute('style', horizontalRuleStyles.join(';'));
         this.holder.appendChild(rulerHorizontal);
