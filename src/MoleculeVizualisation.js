@@ -69,7 +69,9 @@ export default class MoleculeVizualisation {
             // you have a better view on what is going on.
             debug: false,
 
-            performanceMonitoring: false
+            performanceMonitoring: false,
+
+            showGizmos: false,
         };
 
         /**
@@ -87,7 +89,7 @@ export default class MoleculeVizualisation {
         /**
          * @type {PIXIE.app}
          */
-        this.pixieApp = new PIXI.Application({
+        this.pixiApp = new PIXI.Application({
             width: this.holder.clientWidth,
             height: this.holder.clientHeight,
             antialias: true,    // default: false
@@ -95,6 +97,7 @@ export default class MoleculeVizualisation {
             resolution: 1       // default: 1
         });
 
+        this.moleculeEmitters = [];
         this.molecules = [];
 
 
@@ -129,8 +132,8 @@ export default class MoleculeVizualisation {
 
     fillWithRandomData(moleculeAmount = 500) {
         for (let i = 0; i < moleculeAmount; i++) {
-            const x = this.pixieApp.screen.width / 2 + ((Math.random() * this.pixieApp.screen.width) - this.pixieApp.screen.width / 2 );
-            const y = this.pixieApp.screen.height / 2 + ((Math.random() * this.pixieApp.screen.height) - this.pixieApp.screen.height / 2);
+            const x = this.pixiApp.screen.width / 2 + ((Math.random() * this.pixiApp.screen.width) - this.pixiApp.screen.width / 2 );
+            const y = this.pixiApp.screen.height / 2 + ((Math.random() * this.pixiApp.screen.height) - this.pixiApp.screen.height / 2);
 
             const molecule = new Molecule(
                 this,
@@ -142,7 +145,7 @@ export default class MoleculeVizualisation {
 
             this.molecules.push(molecule);
 
-            this.pixieApp.stage.addChild(molecule.container);
+            this.pixiApp.stage.addChild(molecule.container);
         }
 
         return this;
@@ -185,8 +188,15 @@ export default class MoleculeVizualisation {
 
 
         const elapsed = now - this.then;
+
+        // Loop over all molecules and render them.
         for (let i = 0; i < this.molecules.length; i++) {
             this.molecules[i].render(elapsed);
+        }
+
+        // Loop over all emitters and render them.
+        for (let i = 0; i < this.moleculeEmitters.length; i++) {
+            this.moleculeEmitters[i].render(elapsed);
         }
 
         if (this.settings.performanceMonitoring === true) {
@@ -220,11 +230,13 @@ export default class MoleculeVizualisation {
         const chartBorderRuler = this.document.createElement('div');
 
         const baseStyles = [
-            'position: absolute',
+            'background: #00F',
             'height: 1px',
             'left: 0',
+            'opacity: 0.5',
+            'pointer-events: none',
+            'position: absolute',
             'top: 50%',
-            'background: #00F',
             'transform-origin: center'
         ];
 
@@ -247,12 +259,13 @@ export default class MoleculeVizualisation {
         this.holder.appendChild(rulerVertical);
 
         chartBorderRuler.setAttribute('style', [
+            'border: 1px solid #F0F',
+            'height: 100%',
+            'left: 0',
+            'pointer-events: none',
             'position: absolute',
             'top: 0',
-            'left: 0',
             'width: 100%',
-            'height: 100%',
-            'border: 1px solid #F0F'
         ].join(';'));
         this.holder.appendChild(chartBorderRuler);
     }
@@ -261,12 +274,38 @@ export default class MoleculeVizualisation {
      * Sets up all the necessary layers for the visualisation.
      */
     setupLayers() {
-        this.createPixieApp();
+        this.createPixiApp();
         // this.createPointsLayer();
         // this.createTargetsLayer();
     }
 
-    createPixieApp() {
-        this.holder.appendChild(this.pixieApp.view);
+    createPixiApp() {
+        this.holder.appendChild(this.pixiApp.view);
+    }
+
+    /**
+     * Adders
+     */
+    addEmitter(emitter) {
+        this.moleculeEmitters.push(emitter);
+        this.pixiApp.stage.addChild(emitter.container);
+        emitter.recreateMolecules();
+    }
+
+    /**
+     * Getters
+     */
+    getCenterCoordinates() {
+        return {
+            x: this.pixiApp.screen.width / 2,
+            y: this.pixiApp.screen.height / 2
+        };
+    }
+
+    /**
+     * Setters
+     */
+    setState(state) {
+
     }
 }

@@ -54,6 +54,14 @@ body {
             top: 0;
         }
 
+/**
+ * Data gui styling.
+ */
+.dg.main,
+.dg .close-button {
+    width: 400px !important;
+}
+
 #chart-holder {
     height: 90%;
     left: 50%;
