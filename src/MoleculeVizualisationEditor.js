@@ -14,11 +14,37 @@ export default class MoleculeVizualisationEditor {
          */
         this.mlcv = mlcv;
 
+        /**
+         * Emitter used to for the new settings gui.
+         *
+         * @type {MoleculeEmitter}
+         */
         this.newEmitter = new MoleculeEmitter();
 
+        /**
+         * Selected emitter in the editor.
+         *
+         * @type {MoleculeEmitter}
+         */
+        this.selectedEmitter = null;
+
+        /**
+         * GUI for editor.
+         *
+         * @type {dat}
+         */
         this.gui = new dat.GUI();
 
-        console.log('GUI', this.gui);
+
+        /**
+         * @type {PIXI.Sprite}
+         */
+        this.referenceImage = PIXI.Sprite.fromImage('./../example/img/reference.png');
+
+        /**
+         * @type {Number}
+         */
+        this.referenceImageOpacity = 0.15;
 
         this.init();
     }
@@ -29,6 +55,7 @@ export default class MoleculeVizualisationEditor {
 
     setupLayers() {
         this.setupMoleculeEmitterControls();
+        this.setupReferenceLayer();
     }
 
     setupMoleculeEmitterControls() {
@@ -38,12 +65,33 @@ export default class MoleculeVizualisationEditor {
         newEmitterFolder.open();
 
         const mlcvFolder = this.gui.addFolder('MLCV');
-        mlcvFolder.add(this, 'toggleDebug');
-        mlcvFolder.add(this.mlcv.settings, 'debug').listen();
-        mlcvFolder.add(this, 'toggleGizmos');
-        mlcvFolder.add(this.mlcv.settings, 'showGizmos').listen();
-        mlcvFolder.add(this.mlcv, 'exportState').name('Export current state');
+        mlcvFolder.add(this, 'toggleDebug').name('Toggle Debug');
+        // mlcvFolder.add(this.mlcv.settings, 'debug').listen();
+        mlcvFolder.add(this, 'toggleGizmos').name('Toggle Gizmos');
+        // mlcvFolder.add(this.mlcv.settings, 'showGizmos').listen();
+        mlcvFolder.add(this, 'toggleReferenceImage').name('Toggle reference image');
+        const referenceImageOpacityContr = mlcvFolder.add(this, 'referenceImageOpacity', 0, 1).step(0.01).name('Reference Image Opacity');
+        mlcvFolder.add(this, 'toggleAnimation').name('Toggle Animation');
+        mlcvFolder.add(this, 'recreateMolecules').name('Recreate molecules');
+        mlcvFolder.add(this.mlcv, 'exportState').name('Export (JSON)');
         mlcvFolder.open();
+
+        referenceImageOpacityContr.onChange(value => {
+            this.referenceImage.alpha = value;
+        });
+    }
+
+    setupReferenceLayer() {
+        // center the sprite's anchor point
+        this.referenceImage.anchor.set(0.5);
+
+        // move the sprite to the center of the screen
+        this.referenceImage.x = this.mlcv.pixiApp.screen.width / 2;
+        this.referenceImage.y = this.mlcv.pixiApp.screen.height / 2;
+
+        this.referenceImage.alpha = this.referenceImageOpacity;
+
+        this.mlcv.pixiApp.stage.addChild(this.referenceImage);
     }
 
     placeEmitter(x = undefined, y = undefined) {
@@ -56,25 +104,29 @@ export default class MoleculeVizualisationEditor {
             y = centerCoords.y;
         }
 
-        const emitter = new MoleculeEmitter(this.mlcv, {
-            x: x,
-            y: y,
-            moleculeAmount: this.newEmitter.settings.moleculeAmount,
-            spawnRadius: this.newEmitter.settings.spawnRadius,
-            moleculeSize: this.newEmitter.settings.moleculeSize,
-            moleculePointRadius: this.newEmitter.settings.moleculePointRadius,
-            moleculeLineThickness: this.newEmitter.settings.moleculeLineThickness,
-            sizeJitter: this.newEmitter.settings.sizeJitter,
-            opacityJitter: this.newEmitter.settings.opacityJitter
-        });
+        // Get settings of configured emitter and
+        // set the coordinates.
+        const state = this.newEmitter.exportState();
+        state.settings.x = x;
+        state.settings.y = y;
 
-        console.log(x, y, emitter);
+        // Create new emitter based on exported settings.
+        const emitter = new MoleculeEmitter(this.mlcv, state.settings);
 
+        // Add emitter to the vizualisation.
         this.mlcv.addEmitter(emitter);
 
+        // Bind some click functionality on the emitter's dragGizom.
         emitter.on('click', this.onClickEmitter.bind(this, emitter), 'dragGizmo');
     }
 
+    toggleAnimation() {
+        // Todo.
+    }
+
+    /**
+     * Toggles the debug on and off.
+     */
     toggleDebug() {
         this.mlcv.settings.debug = !this.mlcv.settings.debug;
 
@@ -85,6 +137,9 @@ export default class MoleculeVizualisationEditor {
         }
     }
 
+    /**
+     * Toggles all gizmos on and off.
+     */
     toggleGizmos() {
         this.mlcv.settings.showGizmos = !this.mlcv.settings.showGizmos;
 
@@ -94,15 +149,27 @@ export default class MoleculeVizualisationEditor {
         }
     }
 
+    /**
+     * Toggles the visibility of the reference image on and off.
+     */
+    toggleReferenceImage() {
+        this.referenceImage.visible = !this.referenceImage.visible;
+    }
+
     onClickEmitter(emitter) {
         if (emitter !== this.selectedEmitter) {
-            if (this.selectedEmitter !== undefined) {
+            // If a previous selected emitter exist we will
+            // unhighlight it and remove the folder gui for
+            // a clean start.
+            if (this.selectedEmitter !== null) {
                 this.selectedEmitter.unhighlight();
                 this.gui.removeFolder(this.gui.__folders['Selected Emitter']);
             }
 
+            // Highlight the clicked emitter.
             emitter.highlight();
 
+            // Recreate the settings GUI for this emitter into a folder.
             const selectedEmitterFolder = this.gui.addFolder('Selected Emitter');
             this.addEmitterSettingsToFolder(selectedEmitterFolder, emitter, true);
             selectedEmitterFolder.open();
@@ -111,43 +178,83 @@ export default class MoleculeVizualisationEditor {
         }
     }
 
-    addEmitterSettingsToFolder(folder, emitter, recreateMoleculesOnChange = false) {
-        const mlcAmountContr = folder.add(emitter.settings, 'moleculeAmount', 1, 100).step(1);
-        const spawnRadiusContr = folder.add(emitter.settings, 'spawnRadius', 0, 200).step(1);
-        const moleculeSizeContr = folder.add(emitter.settings, 'moleculeSize', 0, 500).step(1);
-        const moleculePointRadiusContr = folder.add(emitter.settings, 'moleculePointRadius', 0, 250).step(1);
-        const moleculeLineThicknessContr = folder.add(emitter.settings, 'moleculeLineThickness', 0, 100).step(1);
-        const opacityJitterContr = folder.add(emitter.settings, 'opacityJitter', 0, 100).step(1);
-        const sizeJitterContr = folder.add(emitter.settings, 'sizeJitter', 0, 100).step(1);
+    /**
+     * Recreate all the molecules for all emitters.
+     */
+    recreateMolecules() {
+        for (let i = 0; i < this.mlcv.moleculeEmitters.length; i++) {
+            this.mlcv.moleculeEmitters[i].recreateMolecules();
+        }
+    }
 
-        if (recreateMoleculesOnChange === true) {
+    randomizePositions() {
+        for (let i = 0; i < this.mlcv.moleculeEmitters.length; i++) {
+            this.mlcv.moleculeEmitters[i].randomizePositions();
+        }
+    }
+
+    addEmitterSettingsToFolder(folder, emitter, placedEmitter = false) {
+        const mlcAmountContr = folder.add(emitter.settings, 'moleculeAmount', 1, 150).step(1).name('Molecule amount');
+        const spawnRadiusContr = folder.add(emitter.settings, 'spawnRadius', 0, 400).step(1).name('Spawn radius');
+        const moleculeSizeContr = folder.add(emitter.settings, 'moleculeSize', 0, 500).step(1).name('Molecule Size');
+        const moleculePointRadiusContr = folder.add(emitter.settings, 'moleculePointRadius', 0, 250).step(1).name('Point radius');
+        const moleculeLineLengthScaleContr = folder.add(emitter.settings, 'moleculeLineLengthScale', 0, 100).step(1).name('Line Length (%)');
+        const moleculeLineThicknessContr = folder.add(emitter.settings, 'moleculeLineThickness', 0, 100).step(1).name('Line thickness');
+        const opacityJitterContr = folder.add(emitter.settings, 'opacityJitter', 0, 100).step(1).name('Opacity Jitter');
+        const sizeJitterContr = folder.add(emitter.settings, 'sizeJitter', 0, 100).step(1).name('Size Jitter');
+
+        if (placedEmitter === true) {
+            folder.add(emitter, 'randomizePositions').name('Randomize positions');
+            folder.add(emitter, 'recreateMolecules').name('Recreate molecules');
+            folder.add(this, 'removeEmitter').name('Remove emitter');
+
             mlcAmountContr.onChange(value => {
                 emitter.recreateMolecules();
             });
 
             spawnRadiusContr.onChange(value => {
-                emitter.recreateMolecules();
+                emitter.setSpawnRadius(value, true);
             });
 
-            moleculeSizeContr.onChange(value => {
-                emitter.recreateMolecules();
+            // When the spawn radius controller ends we will
+            // hide gizmos if they were hidden before.
+            spawnRadiusContr.onFinishChange(() => {
+                if (this.mlcv.settings.showGizmos !== true) {
+                    emitter.hideGizmos();
+                }
+            });
+
+            moleculeSizeContr.onFinishChange(value => {
+                emitter.setMoleculeSize(value);
             });
 
             moleculePointRadiusContr.onChange(value => {
-                emitter.recreateMolecules();
+                emitter.setMoleculePointRadius(value);
+            });
+
+            moleculeLineLengthScaleContr.onChange(value => {
+                emitter.setMoleculeLineLengthScale(value);
             });
 
             moleculeLineThicknessContr.onChange(value => {
-                emitter.recreateMolecules();
+                emitter.setMoleculeLineThickness(value);
             });
 
-            opacityJitterContr.onChange(value => {
-                emitter.recreateMolecules();
+            opacityJitterContr.onFinishChange(value => {
+                emitter.setOpacityJitter(value);
             });
 
-            sizeJitterContr.onChange(value => {
-                emitter.recreateMolecules();
+            sizeJitterContr.onFinishChange(value => {
+                emitter.setSizeJitter(value);
             });
+
+
         }
+    }
+
+    removeEmitter() {
+        this.mlcv.removeEmitter(this.selectedEmitter);
+        this.selectedEmitter = null;
+        this.gui.removeFolder(this.gui.__folders['Selected Emitter']);
     }
 }

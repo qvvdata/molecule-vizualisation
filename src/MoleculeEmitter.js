@@ -36,19 +36,25 @@ export default class MoleculeEmitter {
             // Variation in size. Percentage.
             sizeJitter: 20,
 
+            // Amount of molecules this emitter will spawn.
+            moleculeAmount: 10,
+
             // Size of the molecule.
             moleculeSize: 40,
 
-            moleculePointRadius: 5,
+            // Length of the line between molecules. in percent.
+            // 100% means it spans from endpoint to endpoint.
+            // 0% means no line.
+            moleculeLineLengthScale: 100,
 
+            // Line thickness of the connecting line.
             moleculeLineThickness: 2,
 
+            // Radius of each endpoint.
+            moleculePointRadius: 5,
 
             // How far from the center are are alloed to spawn molecules.
             spawnRadius: 100,
-
-            // Amount of molecules this emitter will spawn.
-            moleculeAmount: 10,
 
             // How big is the movement radius of the molecule.
             moleculeMovementRadius: 100,
@@ -98,8 +104,6 @@ export default class MoleculeEmitter {
 
     recreateMolecules() {
         if (this.mlcv !== null) {
-            // this.mlcv.pixiApp.stage.removeChild(this.container);
-
             this.removeMolecules();
 
             this.molecules = this.createMolecules();
@@ -107,13 +111,11 @@ export default class MoleculeEmitter {
             for (let i = 0; i < this.molecules.length; i++) {
                 this.container.addChild(this.molecules[i].container);
             }
-
-            // this.mlcv.pixiApp.stage.addChild(this.container);
         }
     }
 
     removeMolecules() {
-        for(let i = 0; i < this.molecules.length; i++) {
+        for (let i = 0; i < this.molecules.length; i++) {
             this.container.removeChild(this.molecules[i].container);
         }
     }
@@ -171,34 +173,50 @@ export default class MoleculeEmitter {
         const molecules = [];
 
         for (let i = 0; i < this.settings.moleculeAmount; i++) {
-            const x = 0 + (this.settings.spawnRadius / 2) - Math.random() * this.settings.spawnRadius;
-            const y = 0 + (this.settings.spawnRadius / 2) - Math.random() * this.settings.spawnRadius;
+            const position = this.calculateMoleculePosition();
 
-            const radius = this.settings.moleculePointRadius;
-            const length = this.settings.moleculeSize;
-            const lineThickness = this.settings.moleculeLineThickness;
-
-            const molecule = new Molecule(this.mlcv, x, y, radius, length, lineThickness);
-
+            const settings = {
+                x: position.x,
+                y: position.y,
+                radius: this.settings.moleculePointRadius,
+                size: this.settings.moleculeSize,
+                lineThickness: this.settings.moleculeLineThickness,
+                lineLengthScale: this.settings.moleculeLineLengthScale
+            };
 
             if (this.settings.sizeJitter > 0) {
-                const scaleDiff = Math.random() * this.settings.sizeJitter / 100;
-                const scale = 1.0 - scaleDiff;
-                molecule.setScale(scale);
-
-
+                settings.scale = this.calculateMoleculeScale();
             }
 
             if (this.settings.opacityJitter > 0) {
-                const diff = Math.random() * this.settings.opacityJitter / 100;
-                const opacity = 1.0 - diff;
-                molecule.setOpacity(opacity);
+                settings.opacity = this.calculateMoleculeOpacity();
             }
+
+            const molecule = new Molecule(this.mlcv, settings);
 
             molecules.push(molecule);
         }
 
         return molecules;
+    }
+
+    calculateMoleculeOpacity() {
+        const diff = Math.random() * this.settings.opacityJitter / 100;
+        return 1.0 - diff;
+    }
+
+    calculateMoleculeScale() {
+        const scaleDiff = Math.random() * this.settings.sizeJitter / 100;
+        return 1.0 - scaleDiff;
+    }
+
+    calculateMoleculePosition() {
+        const angle = Math.random() * 360;
+
+        return {
+            x: Math.cos(Helpers.degToRad(angle)) * Math.random() * this.settings.spawnRadius,
+            y: Math.sin(Helpers.degToRad(angle)) * Math.random() * this.settings.spawnRadius
+        };
     }
 
     /**
@@ -243,6 +261,59 @@ export default class MoleculeEmitter {
      */
 
     /**
+     * @param {Number}
+     */
+    setMoleculeLineLengthScale(scale) {
+        this.settings.moleculeLineLengthScale = scale;
+
+        // Update all molecule sizes.
+        for (let i = 0; i < this.molecules.length; i++) {
+            this.molecules[i].setLineLengthScale(scale);
+        }
+    }
+
+    /**
+     * @param {Number} value
+     */
+    setMoleculeLineThickness(thickness) {
+        this.settings.moleculeLineThickness = thickness;
+
+        // Update all molecule sizes.
+        for (let i = 0; i < this.molecules.length; i++) {
+            this.molecules[i].setLineThickness(thickness);
+        }
+    }
+
+    /**
+     * @param {Number}
+     */
+    setMoleculePointRadius(radius) {
+        this.settings.moleculePointRadius = radius;
+
+        // Update all molecule sizes.
+        for (let i = 0; i < this.molecules.length; i++) {
+            this.molecules[i].setRadius(radius);
+        }
+    }
+
+    setMoleculeSize(size) {
+        this.settings.moleculeSize = size;
+
+        for (let i = 0; i < this.molecules.length; i++) {
+            this.molecules[i].setSize(size);
+        }
+    }
+
+    setOpacityJitter(value) {
+        this.settings.opacityJitter = value;
+
+        // Loop over all the molecules and recalculate the opacity;
+        for (let i = 0; i < this.molecules.length; i++) {
+            this.molecules[i].setOpacity(this.calculateMoleculeOpacity());
+        }
+    }
+
+    /**
      * @param {{
      *        x: Number,
      *        y: Number
@@ -253,8 +324,43 @@ export default class MoleculeEmitter {
         this.setY(position.y);
     }
 
+    setSizeJitter(value) {
+        this.settings.sizeJitter = value;
+
+        // Loop over all the molecules and recalculate the opacity;
+        for (let i = 0; i < this.molecules.length; i++) {
+            this.molecules[i].setScale(this.calculateMoleculeScale());
+        }
+    }
+
     /**
-     * @param {Number} x
+     * @param {Number} radius
+     */
+    setSpawnRadius(radius, showGizmos = false) {
+        this.settings.spawnRadius = radius;
+
+        if (this.radiusGizmo !== null) {
+            this.container.removeChild(this.radiusGizmo);
+        }
+
+        if (this.highlightGizmo !== null) {
+            this.container.removeChild(this.highlightGizmo);
+        }
+
+        if (this.mlcv.settings.showGizmos === true || showGizmos === true) {
+            this.radiusGizmo = this.createSpawnRadiusGizmo();
+            this.container.addChild(this.radiusGizmo);
+
+
+            this.highlightGizmo = this.createHighlightGizmo();
+            this.container.addChild(this.highlightGizmo);
+        }
+
+        this.recreateMolecules();
+    }
+
+    /**
+     * @param {Number}
      */
     setX(x) {
         this.settings.x = x;
@@ -262,7 +368,7 @@ export default class MoleculeEmitter {
     }
 
     /**
-     * @param {Number} y
+     * @param {Number}
      */
     setY(y) {
         this.settings.y = y;
@@ -298,18 +404,22 @@ export default class MoleculeEmitter {
             if (this.highlightGizmo !== null) {
                 this.highlightGizmo.visible = true;
             }
-        } else { // Hide gizmos.
-            if (this.radiusGizmo !== null) {
-                this.radiusGizmo.visible = false;
-            }
+        } else {
+            this.hideGizmos();
+        }
+    }
 
-            if (this.dragGizmo !== null) {
-                this.dragGizmo.visible = false;
-            }
+    hideGizmos() {
+        if (this.radiusGizmo !== null) {
+            this.radiusGizmo.visible = false;
+        }
 
-            if (this.highlightGizmo !== null) {
-                this.highlightGizmo.visible = false;
-            }
+        if (this.dragGizmo !== null) {
+            this.dragGizmo.visible = false;
+        }
+
+        if (this.highlightGizmo !== null) {
+            this.highlightGizmo.visible = false;
         }
     }
 
@@ -342,14 +452,45 @@ export default class MoleculeEmitter {
         }
     }
 
+    createHighlightGizmo() {
+        return this.createSpawnRadiusGizmo(0xFF0000);
+    }
+
     highlight() {
-        this.highlightGizmo = this.createSpawnRadiusGizmo(0xFF0000);
+        this.highlightGizmo = this.createHighlightGizmo();
         this.container.addChild(this.highlightGizmo);
     }
 
     unhighlight() {
         if (this.highlightGizmo !== null) {
             this.container.removeChild(this.highlightGizmo);
+        }
+    }
+
+    /**
+     * Export the state of this emitter.
+     *
+     * We export the settings of the emitter and each molecule.
+     * @return {Object}
+     */
+    exportState() {
+        const state = {
+            settings: Helpers.mergeDeep({}, this.settings),
+            molecules: []
+        };
+
+        for (let i = 0; i < this.molecules.length; i++) {
+            const molecule = this.molecules[i];
+            state.molecules.push(molecule.export());
+        }
+
+        return state;
+    }
+
+    randomizePositions() {
+        // Loop over all the molecules and recalculate the opacity;
+        for (let i = 0; i < this.molecules.length; i++) {
+            this.molecules[i].setPosition(this.calculateMoleculePosition());
         }
     }
 }

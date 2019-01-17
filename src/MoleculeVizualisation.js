@@ -213,15 +213,6 @@ export default class MoleculeVizualisation {
     }
 
     /**
-     * Export the current state of the chart
-     *
-     * @return {Object} JSON object.
-     */
-    exportState() {
-
-    }
-
-    /**
      * Draw rulers in the chart so we can have a better picture of alignment.
      */
     drawRulers() {
@@ -307,5 +298,52 @@ export default class MoleculeVizualisation {
      */
     setState(state) {
 
+    }
+
+    /**
+     * Export the current state of the viz.
+     *
+     * We will export all the emitters including the state of their molecules.
+     *
+     * After that we will export all the molecules without an emitter.
+     *
+     * @return {Object} JSON object.
+     */
+    exportState() {
+        const state = {
+            'Emitters': []
+        };
+
+        // Loop over all molecule emitters and export them.
+        for (let i = 0; i < this.moleculeEmitters.length; i++) {
+            const emitter = this.moleculeEmitters[i];
+
+            state['Emitters'].push(emitter.exportState());
+        }
+
+        const json = JSON_ENCODE(state);
+
+        console.log(json);
+    }
+
+    removeEmitter(emitter) {
+        const index = this.findIndexOfEmitter(emitter);
+
+        if (index !== -1) {
+            this.pixiApp.stage.removeChild(emitter.container);
+            this.moleculeEmitters.splice(index, 1);
+        } else {
+            console.log('Emitter not found for deletion', emitter);
+        }
+    }
+
+    findIndexOfEmitter(emitter) {
+        for (let i = 0; i < this.moleculeEmitters.length; i++) {
+            if (emitter === this.moleculeEmitters[i]) {
+                return i;
+            }
+        }
+
+        return -1;
     }
 }

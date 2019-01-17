@@ -1,66 +1,122 @@
+import Helpers from './Helpers';
 import * as PIXI from '../node_modules/pixi.js/dist/pixi';
 import PixiEase from '../node_modules/pixi-ease/dist/index';
 
 export default class Molecule {
-    constructor(mcv, x, y, radius, width, lineThickness) {
-        this.x = x;
-        this.y = y;
-        this.radius = radius;
+    /**
+     * @param {MoleculeVizualisation} mlcv
+     * @param {Object}                customSettings
+     */
+    constructor(mlcv, customSettings) {
+        /**
+         * Reference to parent so we can access it.
+         *
+         * @type {MoleculeVizualisation}
+         */
+        this.mlcv = mlcv;
 
-        this.lineThickness = lineThickness;
-        this.width = width;
+        /**
+         * Will be overwritten by custom settings.
+         *
+         * @type {Object}
+         */
+        this.defaultSettings = {
+            /**
+             * Currently static. Need to implement colour selection too.
+             *  HEX Format.
+             *
+             * @type {Number}
+             */
+            color: 0x000000,
+
+            // Scale of length of the connecting line
+            // compared to the size.
+            // Percentage.
+            lineLengthScale: 100,
+
+            /**
+             * Thickness of connecting line.
+             *
+             * @type {Number}
+             */
+            lineThickness: 1,
+
+            /**
+             * @type {Number}
+             */
+            opacity: 1,
+
+            /**
+             * Radius of endpoints.
+             *
+             * @type {Number}
+             */
+            radius: 10,
+
+            /**
+             * Scale of the entire object.
+             *
+             * @type {Number}
+             */
+            scale: 1,
+
+            /**
+             * Size (a.k.a length) of the molecule.
+             *
+             * @type {Number}
+             */
+            size: 100,
+
+            /**
+             * @type {Number}
+             */
+            x: 0,
+
+            /**
+             * @type {Number}
+             */
+            y: 0,
+        };
 
 
+        /**
+         * Final settings object.
+         *
+         * @type {Object}
+         */
+        this.settings = Helpers.mergeDeep(this.defaultSettings, customSettings);
+
+        /**
+         * @type {PIXI.Container}
+         */
         this.container = new PIXI.Container();
+        this.container.rotation = Math.random() * (2 * Math.PI); // random rotation for now.
 
-        this.container.position.set(x, y);
+        /**
+         * @type {?PIXI.Graphics}
+         */
+        this.endPointLeft = null;
 
-        this.container.rotation = Math.random() * (2 * Math.PI);
+        /**
+         * @type {PIXI.Graphics}
+         */
+        this.endPointRight = null;
 
-        const circle = new PIXI.Graphics();
-        circle.beginFill(0x000000);
-        circle.drawCircle(0 + radius, 0 + radius, radius);
-        circle.endFill();
-        this.circle = circle;
+        /**
+         * @type {PIXI.Graphics}
+         */
+        this.connectingLine = null;
 
-        const endCircle = new PIXI.Graphics();
-        endCircle.beginFill(0x000000);
-        endCircle.drawCircle(width - radius, 0 + radius, radius);
-        endCircle.endFill();
-
-        const line = new PIXI.Graphics();
-        // line.beginFill(0x000000);
-        line.lineStyle(this.lineThickness, 0x00000, 1);
-        line.moveTo(0, 0 + radius);
-        line.lineTo(width, 0 + radius);
-        // line.endFill();
-        this.line = line;
-
-        this.container.addChild(line);
-        this.container.addChild(circle);
-        this.container.addChild(endCircle);
-
-        this.container.pivot.x = this.container.width / 2;
-        this.container.pivot.y = this.container.height / 2;
-
-
+        /**
+         * @type {PIXI.Container}
+         */
         this.boundsElement = null;
-        if (mcv.settings.debug === true) {
-            this.createDebugElements();
-        }
 
-        this.animation = new PixiEase.to(
-            this.container,
-            {
-                x: this.x + Math.random() * 50,
-                y: this.y + Math.random() * 50
-            },
-            5000,
-            {
-                repeat: true,
-                reverse: true
-            }
-        );
+        this.init();
+
+        this.PixiEaseList = new PixiEase.list({
+            pauseOnBlur: true
+        });
 
         // this.animation = new PixiEase.angle(
         //     this.container,
@@ -85,22 +141,132 @@ export default class Molecule {
         // console.log(this.animation);
     }
 
-    createDebugElements() {
-        this.createBoundsElement();
+    init() {
+        this.container.position.set(this.settings.x, this.settings.y);
+
+        // Take care of the left endpoint.
+        if (this.endPointLeft !== null) { // if element exist first remove it from the renderer.
+            this.container.removeChild(this.endPointLeft);
+        }
+        this.endPointLeft = this.createEndPointLeft();
+        this.container.addChild(this.endPointLeft);
+
+
+        // Take care of the right endpoint.
+        if (this.endPointRight !== null) {
+            this.container.removeChild(this.endPointRight);
+        }
+        this.endPointRight = this.createEndPointRight();
+        this.container.addChild(this.endPointRight);
+
+        // Take care of the connecting line.
+        if (this.connectingLine !== null) {
+            this.container.removeChild(this.connectingLine);
+        }
+        this.connectingLine = this.createConnectingLine();
+        this.container.addChild(this.connectingLine);
+
+        if (this.boundsElement !== null) {
+            this.container.removeChild(this.boundsElement);
+        }
+
+        if (this.mlcv.settings.debug === true) {
+            this.boundsElement = this.createBoundsElement();
+            this.container.addChild(this.boundsElement);
+        }
+
+        this.container.alpha = this.settings.opacity;
+
+        // Set the pivot of the container to the center.
+        this.container.pivot.x = this.container.width / 2;
+        this.container.pivot.y = this.container.height / 2;
+
+        // Must go at the end after all children have been added or else
+        // their scales will be incorrect
+        this.container.scale.y = this.settings.scale;
+        this.container.scale.x = this.settings.scale;
+
+        this.animation = new PixiEase.to(
+            this.container,
+            {
+                x: this.x + Math.random() * 50,
+                y: this.y + Math.random() * 50
+            },
+            5000,
+            {
+                repeat: true,
+                reverse: true
+            }
+        );
+    }
+
+    createEndPointLeft() {
+        return this.createEndPoint(
+            this.settings.radius,
+            this.settings.radius,
+            this.settings.radius,
+            this.settings.color
+        );
+    }
+
+    createEndPointRight() {
+        return this.createEndPoint(
+            this.settings.size - this.settings.radius,
+            this.settings.radius,
+            this.settings.radius,
+            this.settings.color
+        );
+    }
+
+    createEndPoint(x, y, radius, color) {
+        const circle = new PIXI.Graphics();
+        circle.beginFill(color);
+        circle.drawCircle(x, y, radius);
+        circle.endFill();
+        return circle;
+    }
+
+    createConnectingLine() {
+        const startX = this.settings.radius * 2;
+        const lineSize = this.settings.size - (this.settings.radius * 4);
+
+        // We basically calculate the length of the line with the scale.
+        const scaledLineSize = lineSize * this.settings.lineLengthScale / 100;
+
+        // We look at the difference between the original size and the scaled size.
+        const lineLengthDiff = scaledLineSize - lineSize;
+
+        // We cut the difference in half because we need it later on.
+        const halfLineLenghtDiff = lineLengthDiff / 2;
+
+        const line = new PIXI.Graphics();
+        line.lineStyle(this.settings.lineThickness, this.settings.color);
+
+        // We move the line to the right by radius * 2 so it does not overlap the circle.
+        // After that we nudge the line half the length diff so it stays centered between
+        // the points.
+        line.moveTo(startX - halfLineLenghtDiff, this.settings.radius);
+
+        // Draw the line to the other side.
+        // After that we nudge the line by half the linelenghtdiff so the line stays centered.
+        line.lineTo(startX + lineSize + halfLineLenghtDiff, this.settings.radius);
+        return line;
     }
 
     createBoundsElement() {
         const bounds = new PIXI.Graphics();
         bounds.lineStyle(1, 0xFF00FF, 1);
-        bounds.drawRect(0, 0, this.container.width, this.container.height);
-        this.container.addChild(bounds);
 
-        this.boundsElement = bounds;
+        // I use this.settings.size here because using the container width
+        // was giving me incorrect measurements when the molecules are
+        // dynamically changed.
+        bounds.drawRect(0, 0, this.settings.size, this.container.height);
+
+        return bounds;
     }
 
     render(elapsed) {
         this.container.rotation -= (0.01 * this.container.scale.x);
-        // console.log(elapsed);
         this.animation.update(elapsed);
     }
 
@@ -109,28 +275,133 @@ export default class Molecule {
             if (this.boundsElement !== null) {
                 this.boundsElement.visible = true;
             } else {
-                this.createBoundsElement();
+                this.boundsElement = this.createBoundsElement();
+                this.container.addChild(this.boundsElement);
             }
-        } else {
-            if (this.boundsElement !== null) {
-                this.boundsElement.visible = false;
-            }
+        } else if (this.boundsElement !== null) {
+            this.boundsElement.visible = false;
         }
+    }
+
+    exportState() {
+        return Helpers.mergeDeep({}, this.settings);
+    }
+
+    /**
+     * TODO:
+     * @param {Object} See exportState for object description.
+     */
+    importState(state) {
+        // if (typeof state['color'] === 'number') {
+
+        // }
     }
 
     /**
      * Setters
      */
 
-    setScale(scale) {
-        this.container.scale.x = scale;
-        this.container.scale.y = scale;
+    setLineLengthScale(scale) {
+        this.settings.lineLengthScale = scale;
+
+        this.init();
+    }
+
+    setLineThickness(thickness) {
+        this.settings.lineThickness = thickness;
+
+        this.init();
     }
 
     /**
-     * @param {Number} opacity 0 - 1
+     * @param {{
+     *        x: Number,
+     *        y: Number
+     * }} position
+     */
+    setPosition(position) {
+        this.setX(position.x);
+        this.setY(position.y);
+    }
+
+    setX(x) {
+        this.settings.x = x;
+
+        this.PixiEaseList.to(
+            this.container,
+            {
+                x: x
+            },
+            1000,
+            {
+                ease: 'easeInOutSine'
+            }
+        );
+    }
+
+    setY(y) {
+        this.settings.y = y;
+
+        this.PixiEaseList.to(
+            this.container,
+            {
+                y: y
+            },
+            1000,
+            {
+                ease: 'easeInOutSine'
+            }
+        );
+    }
+
+    setRadius(radius) {
+        this.settings.radius = radius;
+
+        this.init();
+    }
+
+    /**
+     * @param {Number}
+     */
+    setScale(scale) {
+        this.settings.scale = scale;
+
+        this.PixiEaseList.to(
+            this.container,
+            {
+                scale: scale
+            },
+            1000,
+            {
+                ease: 'easeInOutSine'
+            }
+        );
+    }
+
+    /**
+     * @param {Number}
+     */
+    setSize(size) {
+        this.settings.size = size;
+
+        this.init();
+    }
+
+    /**
+     * @param {Number} 0 - 1
      */
     setOpacity(opacity) {
-        this.container.alpha = opacity;
+        this.settings.opacity = opacity;
+
+        this.PixiEaseList.to(
+            this.container,
+            {
+                alpha: opacity
+            },
+            1000,
+            {
+                ease: 'easeInOutSine'
+            }
+        );
     }
 }
