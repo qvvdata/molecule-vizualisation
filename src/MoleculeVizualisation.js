@@ -2,16 +2,14 @@ import Helpers from './Helpers';
 import MLCV_ENUMS from './enums';
 import MlcvEditor from './MoleculeVizualisationEditor';
 import Molecule from './Molecule';
+import MoleculeEmitter from './MoleculeEmitter';
 import * as PIXI from '../node_modules/pixi.js/dist/pixi';
-import PixiEase from '../node_modules/pixi-ease/bundle/pixi-ease';
+import PixiEase from '../node_modules/pixi-ease/dist/index';
 import RStats from '../node_modules/rstatsjs/src/rStats';
 
 /**
  *
  * Paint mode
- *     - Paint the molecules
- *         - Emmiters?
- *
  *     - Save to a state.
  *
  *     - How to save transitions ?
@@ -72,6 +70,13 @@ export default class MoleculeVizualisation {
             performanceMonitoring: false,
 
             showGizmos: false,
+
+            // Percentage.
+            // Use this to scale down the amount of molecules based on the original
+            // amount to improve performance.
+            // Off course when you scale down the amount of molecules the viz might not
+            // look as perfect anymore.
+            qualityLevel: 30
         };
 
         /**
@@ -81,10 +86,9 @@ export default class MoleculeVizualisation {
          */
         this.settings = Helpers.mergeDeep(this.defaultSettings, customSettings);
 
-        /**
-         * @type {String}
-         */
-        this.mode = MLCV_ENUMS.MODES.VIEW;
+        this.PixiEaseList = new PixiEase.list({
+            pauseOnBlur: true
+        });
 
         /**
          * @type {PIXIE.app}
@@ -101,7 +105,7 @@ export default class MoleculeVizualisation {
         this.molecules = [];
 
 
-        if (this.settings.editor === true) {
+        if (this.settings.mode === MLCV_ENUMS.MODES.EDIT) {
             this.editor = new MlcvEditor(document, this);
         }
 
@@ -277,10 +281,13 @@ export default class MoleculeVizualisation {
     /**
      * Adders
      */
-    addEmitter(emitter) {
+    addEmitter(emitter, createMolecules = true) {
         this.moleculeEmitters.push(emitter);
         this.pixiApp.stage.addChild(emitter.container);
-        emitter.recreateMolecules();
+
+        if (createMolecules === true) {
+            emitter.initMolecules();
+        }
     }
 
     /**
@@ -297,7 +304,17 @@ export default class MoleculeVizualisation {
      * Setters
      */
     setState(state) {
+        for (let i = 0; i < state.emitters.length; i++) {
+            const emitterState = state.emitters[i];
 
+            const emitter = new MoleculeEmitter(
+                this,
+                emitterState.settings
+            );
+
+            emitter.setState(emitterState);
+            this.addEmitter(emitter, false);
+        }
     }
 
     /**
@@ -311,19 +328,75 @@ export default class MoleculeVizualisation {
      */
     exportState() {
         const state = {
-            'Emitters': []
+            originalDimension: {
+                height: this.pixiApp.screen.height,
+                width: this.pixiApp.screen.width
+            },
+            emitters: []
         };
 
         // Loop over all molecule emitters and export them.
         for (let i = 0; i < this.moleculeEmitters.length; i++) {
             const emitter = this.moleculeEmitters[i];
 
-            state['Emitters'].push(emitter.exportState());
+            state.emitters.push(emitter.exportState());
         }
 
-        const json = JSON_ENCODE(state);
+        return state;
+    }
 
-        console.log(json);
+    /**
+     * TODO Pretty sure it is smarter to put all objects in a container and
+     * scale that container. but not sure. scaling the stage is fine for now.
+     *
+     * This import the default state from the states.
+     *
+     * Also checks against the original dimension vs the dimensions
+     * of this app and sets the scale appropriately.
+     *
+     * @param  {Object} state
+     * @return {MoleculeVizualisation}
+     */
+    importDefaultState(state) {
+        let heightScaleDiff = 1;
+        let widthScaleDiff = 1;
+        let scale = 1;
+
+        if (state.originalDimension.height !== this.pixiApp.screen.height) {
+            heightScaleDiff = this.pixiApp.screen.height / state.originalDimension.height;
+        }
+
+        if (state.originalDimension.width !== this.pixiApp.screen.width) {
+            widthScaleDiff = this.pixiApp.screen.width / state.originalDimension.width;
+        }
+
+        if (heightScaleDiff < widthScaleDiff) {
+            scale = heightScaleDiff;
+        } else {
+            scale = widthScaleDiff;
+        }
+
+        this.setState(state);
+
+        // testing animation.
+        // setTimeout(() => {
+        //     this.PixiEaseList.to(
+        //         this.pixiApp.stage,
+        //         {
+        //             scale: scale
+        //         },
+        //         1000,
+        //         {
+        //             ease: 'easeInOutSine'
+        //         }
+        //     );
+
+        // }, 1000);
+
+        this.pixiApp.stage.scale.x = scale;
+        this.pixiApp.stage.scale.y = scale;
+
+        return this;
     }
 
     removeEmitter(emitter) {

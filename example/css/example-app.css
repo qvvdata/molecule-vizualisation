@@ -58,15 +58,20 @@ body {
  * Data gui styling.
  */
 .dg.main,
-.dg .close-button {
+.dg .close-button,
+.dg.main .save-row {
     width: 400px !important;
 }
 
+#dg-save textarea {
+    height: 800px;
+}
+
 #chart-holder {
-    height: 90%;
+    height: 1137px;
     left: 50%;
     position: absolute;
     top: 50%;
     transform: translate(-50%, -50%);
-    width: 750px;
+    width: 529px;
 }

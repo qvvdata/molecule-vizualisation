@@ -1,0 +1,61 @@
+<html>
+<head>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>Import Test</title>
+
+    <link rel="stylesheet" href="./example/css/import-test.css"/>
+</head>
+<body class="import-test">
+
+    <div class="chart-holder chart-holder-original"></div>
+    <div class="chart-holder chart-holder-two-third"></div>
+    <div class="chart-holder chart-holder-half"></div>
+
+    <div class="chart-holder chart-holder-random"></div>
+
+<script type="module">
+import './dist/MoleculeVizualisation.js';
+import MLCV_ENUMS from './src/enums.js';
+import MLCV_STATES from './src/mlcvStates.js';
+
+const settings = {
+    mode: MLCV_ENUMS.VIEW,
+    debug: false,
+    performanceMonitoring: false,
+    showGizmos: false,
+    editor: false
+};
+
+const moleculeVizualisationOriginalSize = new MoleculeVizualisation(
+    document, '.chart-holder-original', settings
+);
+moleculeVizualisationOriginalSize.init()
+    .importDefaultState(MLCV_STATES.Default)
+    .startRenderLoop();
+
+
+const moleculeVizualisationTwoThird = new MoleculeVizualisation(
+    document, '.chart-holder-two-third', settings
+);
+moleculeVizualisationTwoThird.init()
+    .importDefaultState(MLCV_STATES.Default)
+    .startRenderLoop();
+
+// const moleculeVizualisationHalfSize = new MoleculeVizualisation(
+//     document, '.chart-holder-half', settings
+// );
+// moleculeVizualisationHalfSize.init()
+//     .importDefaultState(MLCV_STATES.Default)
+//     .startRenderLoop();
+
+
+// const moleculeVizualisationRandomSize = new MoleculeVizualisation(
+//     document, '.chart-holder-random', settings
+// );
+// moleculeVizualisationRandomSize.init()
+//     .importDefaultState(MLCV_STATES.Default)
+//     .startRenderLoop();
+</script>
+</body>
+</html>

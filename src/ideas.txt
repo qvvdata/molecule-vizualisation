@@ -1,0 +1,5 @@
+optimizations
+
+Editor:
+    - Only create the molecules as necessary depending on quality level
+    - Add/remove as quality is changed?

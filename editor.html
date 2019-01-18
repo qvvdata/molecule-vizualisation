@@ -11,8 +11,11 @@
     <div id="chart-holder"></div>
 <script type="module">
 import './dist/MoleculeVizualisation.js';
+import MLCV_ENUMS from './src/enums.js';
+import MLCV_STATES from './src/mlcvStates.js';
 
 const settings = {
+    mode: MLCV_ENUMS.MODES.EDIT,
     debug: true,
     performanceMonitoring: true,
     showGizmos: true,

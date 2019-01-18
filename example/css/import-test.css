@@ -1,0 +1,39 @@
+* { box-sizing: border-box; }
+
+html,
+body {
+    background: #f3f3f3;
+    font-family: Platform;
+    margin: 0;
+    padding: 20px;
+    position: relative;
+}
+
+.chart-holder {
+    display: inline-block;
+    position: relative;
+    margin-right: 50px;
+    margin-bottom: 50px;
+    outline: 1px solid #333;
+}
+
+.chart-holder-original {
+    height: 1137px;
+    width: 529px;
+}
+
+
+.chart-holder-half {
+    height: 568.5px;
+    width: 264.5px;
+}
+
+.chart-holder-two-third {
+    height: 758px;
+    width: 352.6666666667px;
+}
+
+.chart-holder-random {
+    height: 2000px;
+    width: 2000px;
+}

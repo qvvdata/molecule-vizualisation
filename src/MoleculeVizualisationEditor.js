@@ -1,5 +1,8 @@
 import * as dat from '../node_modules/dat.gui/build/dat.gui';
+import datPresets from './dat.gui.presets';
+import MLCV_STATES from './mlcvStates';
 import MoleculeEmitter from './MoleculeEmitter';
+import * as PIXI from '../node_modules/pixi.js/dist/pixi';
 
 export default class MoleculeVizualisationEditor {
     /**
@@ -19,7 +22,7 @@ export default class MoleculeVizualisationEditor {
          *
          * @type {MoleculeEmitter}
          */
-        this.newEmitter = new MoleculeEmitter();
+        this.guiEmitter = new MoleculeEmitter();
 
         /**
          * Selected emitter in the editor.
@@ -33,8 +36,10 @@ export default class MoleculeVizualisationEditor {
          *
          * @type {dat}
          */
-        this.gui = new dat.GUI();
-
+        this.gui = new dat.GUI({
+            load: datPresets,
+            preset: 'Default'
+        });
 
         /**
          * @type {PIXI.Sprite}
@@ -46,6 +51,13 @@ export default class MoleculeVizualisationEditor {
          */
         this.referenceImageOpacity = 0.15;
 
+        /**
+         * Name for the state when exporting.
+         *
+         * @type {String}
+         */
+        this.exportStateId = 'Default';
+
         this.init();
     }
 
@@ -55,30 +67,57 @@ export default class MoleculeVizualisationEditor {
 
     setupLayers() {
         this.setupMoleculeEmitterControls();
+
+        this.setupMlcvControls();
+
         this.setupReferenceLayer();
     }
 
     setupMoleculeEmitterControls() {
+        // Activate presets and make the gui remember settings.
+        this.gui.remember(this.guiEmitter.settings);
+
         const newEmitterFolder = this.gui.addFolder('New Emitter');
-        this.addEmitterSettingsToFolder(newEmitterFolder, this.newEmitter);
+
+        this.addEmitterSettingsToFolder(newEmitterFolder, this.guiEmitter);
         newEmitterFolder.add(this, 'placeEmitter');
         newEmitterFolder.open();
+    }
 
+    setupMlcvControls() {
         const mlcvFolder = this.gui.addFolder('MLCV');
+        const qualityLevelContr = mlcvFolder.add(this.mlcv.settings, 'qualityLevel', 1, 100).step(1).name('Quality');
         mlcvFolder.add(this, 'toggleDebug').name('Toggle Debug');
-        // mlcvFolder.add(this.mlcv.settings, 'debug').listen();
         mlcvFolder.add(this, 'toggleGizmos').name('Toggle Gizmos');
-        // mlcvFolder.add(this.mlcv.settings, 'showGizmos').listen();
         mlcvFolder.add(this, 'toggleReferenceImage').name('Toggle reference image');
         const referenceImageOpacityContr = mlcvFolder.add(this, 'referenceImageOpacity', 0, 1).step(0.01).name('Reference Image Opacity');
         mlcvFolder.add(this, 'toggleAnimation').name('Toggle Animation');
         mlcvFolder.add(this, 'recreateMolecules').name('Recreate molecules');
-        mlcvFolder.add(this.mlcv, 'exportState').name('Export (JSON)');
         mlcvFolder.open();
+
+        const exportFolder = mlcvFolder.addFolder('Export');
+        exportFolder.add(this, 'exportStateId').name('ID');
+
+        // TODO. when exporting set quality to 100 and update the molecules
+        // so the user always exports the highest quality and there is no confusion.
+        exportFolder.add(this, 'exportState').name('Export (JSON)');
+        exportFolder.open();
 
         referenceImageOpacityContr.onChange(value => {
             this.referenceImage.alpha = value;
         });
+
+        qualityLevelContr.onFinishChange(value => {
+            this.updateEmittersQualityChange();
+        });
+    }
+
+    updateEmittersQualityChange() {
+        for (let i = 0; i < this.mlcv.moleculeEmitters.length; i++) {
+            const emitter = this.mlcv.moleculeEmitters[i];
+
+            emitter.updateEmissionAmountBasedOnQuality();
+        }
     }
 
     setupReferenceLayer() {
@@ -94,8 +133,25 @@ export default class MoleculeVizualisationEditor {
         this.mlcv.pixiApp.stage.addChild(this.referenceImage);
     }
 
-    placeEmitter(x = undefined, y = undefined) {
+    /**
+     * This places an emitter onto the vizualisation.
+     *
+     * If no coordinates are supplied the emitter will be centered.
+     *
+     * If an emitter is passed we will use that as the base to
+     * copy over settings instead of the gui.
+     *
+     * @para  {Number} x
+     * @param {Number} y
+     * @param {?MoleculeEmitter} emitterToCopy
+     */
+    placeEmitter(x = undefined, y = undefined, emitterToCopy = null) {
         console.log('Placing emitter');
+        let emitterToUse = this.guiEmitter;
+
+        if (emitterToCopy instanceof MoleculeEmitter) {
+            emitterToUse = emitterToCopy;
+        }
 
         // If x and y are not valid. place in the middle of the vizualisation.
         if (typeof x !== 'number' && typeof y !== 'number') {
@@ -104,9 +160,9 @@ export default class MoleculeVizualisationEditor {
             y = centerCoords.y;
         }
 
-        // Get settings of configured emitter and
-        // set the coordinates.
-        const state = this.newEmitter.exportState();
+        // Get settings of configured emitter
+        // and set the coordinates.
+        const state = emitterToUse.exportState();
         state.settings.x = x;
         state.settings.y = y;
 
@@ -183,7 +239,7 @@ export default class MoleculeVizualisationEditor {
      */
     recreateMolecules() {
         for (let i = 0; i < this.mlcv.moleculeEmitters.length; i++) {
-            this.mlcv.moleculeEmitters[i].recreateMolecules();
+            this.mlcv.moleculeEmitters[i].initMolecules();
         }
     }
 
@@ -193,13 +249,21 @@ export default class MoleculeVizualisationEditor {
         }
     }
 
+    duplicateSelectedEmitter() {
+        this.placeEmitter(undefined, undefined, this.selectedEmitter);
+    }
+
     addEmitterSettingsToFolder(folder, emitter, placedEmitter = false) {
+        if (placedEmitter === true) {
+            folder.add(this, 'duplicateSelectedEmitter').name('Duplicate');
+        }
+
         const mlcAmountContr = folder.add(emitter.settings, 'moleculeAmount', 1, 150).step(1).name('Molecule amount');
         const spawnRadiusContr = folder.add(emitter.settings, 'spawnRadius', 0, 400).step(1).name('Spawn radius');
         const moleculeSizeContr = folder.add(emitter.settings, 'moleculeSize', 0, 500).step(1).name('Molecule Size');
-        const moleculePointRadiusContr = folder.add(emitter.settings, 'moleculePointRadius', 0, 250).step(1).name('Point radius');
+        const moleculePointRadiusContr = folder.add(emitter.settings, 'moleculePointRadius', 0, 250).step(0.1).name('Point radius');
         const moleculeLineLengthScaleContr = folder.add(emitter.settings, 'moleculeLineLengthScale', 0, 100).step(1).name('Line Length (%)');
-        const moleculeLineThicknessContr = folder.add(emitter.settings, 'moleculeLineThickness', 0, 100).step(1).name('Line thickness');
+        const moleculeLineThicknessContr = folder.add(emitter.settings, 'moleculeLineThickness', 0, 100).step(0.1).name('Line thickness');
         const opacityJitterContr = folder.add(emitter.settings, 'opacityJitter', 0, 100).step(1).name('Opacity Jitter');
         const sizeJitterContr = folder.add(emitter.settings, 'sizeJitter', 0, 100).step(1).name('Size Jitter');
 
@@ -209,7 +273,7 @@ export default class MoleculeVizualisationEditor {
             folder.add(this, 'removeEmitter').name('Remove emitter');
 
             mlcAmountContr.onChange(value => {
-                emitter.recreateMolecules();
+                emitter.initMolecules();
             });
 
             spawnRadiusContr.onChange(value => {
@@ -247,8 +311,6 @@ export default class MoleculeVizualisationEditor {
             sizeJitterContr.onFinishChange(value => {
                 emitter.setSizeJitter(value);
             });
-
-
         }
     }
 
@@ -256,5 +318,56 @@ export default class MoleculeVizualisationEditor {
         this.mlcv.removeEmitter(this.selectedEmitter);
         this.selectedEmitter = null;
         this.gui.removeFolder(this.gui.__folders['Selected Emitter']);
+    }
+
+    exportState() {
+        const cls = this;
+
+        const holder = this.document.createElement('div');
+        holder.setAttribute('style', [
+            'height: 80%',
+            'left: 50%',
+            'padding: 10px',
+            'position: fixed',
+            'top: 50%',
+            'transform: translate(-50%, -50%)',
+            'width: 75%',
+            'z-index: 100'
+        ].join(';'));
+
+        const closeBtn = this.document.createElement('div');
+        closeBtn.setAttribute('style', [
+            'background: #EEE',
+            'border: 1px solid #333',
+            'cursor: pointer',
+            'height: 40px',
+            'padding: 10px',
+            'text-align: center',
+            'width: 100%'
+        ].join(';'));
+        closeBtn.innerHTML = 'CLOSE';
+
+        // Create textarea
+        const textArea = this.document.createElement('textarea');
+        textArea.setAttribute('style', [
+            'height: 100%',
+            'width: 100%',
+        ].join(';'));
+
+        const mlcvState = this.mlcv.exportState();
+        MLCV_STATES[this.exportStateId] = mlcvState;
+
+        console.log(MLCV_STATES);
+
+        textArea.innerHTML = '/* eslint-disable */\n';
+        textArea.innerHTML += `export default ${JSON.stringify(MLCV_STATES, undefined, 4)}`;
+
+        holder.appendChild(closeBtn);
+        holder.appendChild(textArea);
+        this.document.body.appendChild(holder);
+
+        closeBtn.onclick = function onClickCloseBtn() {
+            cls.document.body.removeChild(holder);
+        };
     }
 }

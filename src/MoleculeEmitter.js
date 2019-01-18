@@ -31,10 +31,10 @@ export default class MoleculeEmitter {
             y: 0,
 
             // Variation in opacity.
-            opacityJitter: 50,
+            opacityJitter: 100,
 
             // Variation in size. Percentage.
-            sizeJitter: 20,
+            sizeJitter: 100,
 
             // Amount of molecules this emitter will spawn.
             moleculeAmount: 10,
@@ -85,6 +85,21 @@ export default class MoleculeEmitter {
          */
         this.events = {};
 
+        /**
+         * Debug element to show bounds.
+         *
+         * @type {PIXI.Graphics}
+         */
+        this.boundsElement = null;
+
+        /**
+         * We can edit the properties of the emitter outside of debug mode.
+         * If we toggle the debug mode back on we must know that we
+         * need to re-init the bounds element. We use this flag to do that.
+         *
+         * @type {Boolean}
+         */
+        this.boundsElementIsOutdated = false;
 
         this.highlightGizmo = null;
         this.dragGizmo = null;
@@ -92,6 +107,22 @@ export default class MoleculeEmitter {
 
         if (this.mlcv !== null && this.mlcv.settings.showGizmos === true) {
             this.createGizmos();
+        }
+
+        if (this.mlcv !== null) {
+            this.initBoundsElement();
+        }
+    }
+
+    updateEmissionAmountBasedOnQuality() {
+        const limit = this.calculateMoleculesLimit(this.settings.moleculeAmount);
+
+        for (let i = 0; i < this.molecules.length; i++) {
+            if (i < limit) {
+                this.molecules[i].container.visible = true;
+            } else {
+                this.molecules[i].container.visible = false;
+            }
         }
     }
 
@@ -102,71 +133,63 @@ export default class MoleculeEmitter {
         }
     }
 
-    recreateMolecules() {
+    initMolecules(preconfiguredMolecules = []) {
+        const limit = this.calculateMoleculesLimit();
+
         if (this.mlcv !== null) {
             this.removeMolecules();
 
-            this.molecules = this.createMolecules();
+            this.molecules = this.generateMolecules(this.settings.moleculeAmount, preconfiguredMolecules);
 
             for (let i = 0; i < this.molecules.length; i++) {
                 this.container.addChild(this.molecules[i].container);
+
+                if (i > limit) {
+                    this.molecules[i].container.visible = false;
+                }
             }
         }
     }
 
-    removeMolecules() {
-        for (let i = 0; i < this.molecules.length; i++) {
-            this.container.removeChild(this.molecules[i].container);
+    generateMolecules(limit, preconfiguredMolecules = []) {
+        const molecules = [];
+        for (let i = 0; i < limit; i++) {
+            const molecule = this.generateMolecule(preconfiguredMolecules[i]);
+            molecules.push(molecule);
         }
+
+        return molecules;
     }
 
-    createGizmos() {
-        this.dragGizmo = this.createDragHandleGizmo();
-        this.container.addChild(this.dragGizmo);
+    generateMolecule(settings = undefined) {
+        if (settings === undefined) {
+            settings = this.generateMoleculeSettings();
+        }
 
-        this.radiusGizmo = this.createSpawnRadiusGizmo();
-        this.container.addChild(this.radiusGizmo);
+        return new Molecule(this.mlcv, settings);
     }
 
-    createContainer() {
-        const container = new PIXI.Container();
-        container.x = this.settings.x;
-        container.y = this.settings.y;
+    generateMoleculeSettings() {
+        const position = this.calculateMoleculePosition();
 
-        return container;
-    }
+        const settings = {
+            x: position.x,
+            y: position.y,
+            radius: this.settings.moleculePointRadius,
+            size: this.settings.moleculeSize,
+            lineThickness: this.settings.moleculeLineThickness,
+            lineLengthScale: this.settings.moleculeLineLengthScale
+        };
 
-    createDebugRect() {
-        const bounds = new PIXI.Graphics();
-        bounds.lineStyle(1, 0xFF00FF, 1);
-        bounds.drawRect(0, 0, this.container.width, this.container.height);
+        if (this.settings.sizeJitter > 0) {
+            settings.scale = this.calculateMoleculeScale();
+        }
 
-        return bounds;
-    }
+        if (this.settings.opacityJitter > 0) {
+            settings.opacity = this.calculateMoleculeOpacity();
+        }
 
-    createDragHandleGizmo(color = 0x0000FF) {
-        const gizmo = new PIXI.Graphics();
-        gizmo.beginFill(color);
-        gizmo.drawCircle(0, 0, 10);
-        gizmo.endFill();
-
-        gizmo.interactive = true;
-        gizmo.buttonMode = true;
-
-        gizmo.on('click', this.onClickDragHandle.bind(this))
-            .on('mousedown', this.onDragStart.bind(this))
-            .on('mouseup', this.onDragEnd.bind(this))
-            .on('mouseupoutside', this.onDragEnd.bind(this))
-            .on('mousemove', this.onDragMove.bind(this, gizmo));
-
-        return gizmo;
-    }
-
-    createSpawnRadiusGizmo(clr = 0x00FF00) {
-        const gizmo = new PIXI.Graphics();
-        gizmo.lineStyle(1, clr, 1);
-        gizmo.drawCircle(0, 0, this.settings.spawnRadius);
-        return gizmo;
+        return settings;
     }
 
     createMolecules() {
@@ -199,6 +222,100 @@ export default class MoleculeEmitter {
 
         return molecules;
     }
+
+    removeMolecules() {
+        for (let i = 0; i < this.molecules.length; i++) {
+            this.container.removeChild(this.molecules[i].container);
+        }
+    }
+
+    createGizmos() {
+        this.dragGizmo = this.createDragHandleGizmo();
+        this.container.addChild(this.dragGizmo);
+
+        this.radiusGizmo = this.createSpawnRadiusGizmo();
+        this.container.addChild(this.radiusGizmo);
+    }
+
+    createContainer() {
+        const container = new PIXI.Container();
+        container.x = this.settings.x;
+        container.y = this.settings.y;
+
+        return container;
+    }
+
+    initBoundsElement() {
+        if (this.mlcv.settings.debug === true) {
+            if (this.boundsElement !== null) {
+                this.container.removeChild(this.boundsElement);
+            }
+
+            this.boundsElement = this.createBoundsElement();
+            this.container.addChild(this.boundsElement);
+
+            this.boundsElementIsOutdated = false;
+        } else {
+
+            this.boundsElementIsOutdated = true;
+        }
+    }
+
+    destroyBoundsElement() {
+        this.container.removeChild(this.boundsElement);
+        this.boundsElement = null;
+    }
+
+    createBoundsElement() {
+        const bbox = this.container.getBounds();
+
+        const bounds = new PIXI.Graphics();
+        bounds.lineStyle(1, 0xFF00FF, 1);
+
+        // We move the bounds back half the width and height.
+        // We do this because we paint around the 0,0 point.
+        // In effect this means that the real coordinates of the bounds element
+        // and what we see don't exactly match but that is not important since
+        // we do not need collissions.
+        bounds.drawRect(0 - bbox.width / 2, 0 - bbox.height / 2, bbox.width, bbox.height);
+
+        return bounds;
+    }
+
+    checkInitBoundsElement() {
+        if (this.mlcv.settings.debug === true) {
+            this.initBoundsElement();
+        } else {
+            this.boundsElementIsOutdated = true;
+        }
+    }
+
+    createDragHandleGizmo(color = 0x0000FF) {
+        const gizmo = new PIXI.Graphics();
+        gizmo.beginFill(color);
+        gizmo.drawCircle(0, 0, 10);
+        gizmo.endFill();
+
+        gizmo.interactive = true;
+        gizmo.buttonMode = true;
+
+        gizmo.on('click', this.onClickDragHandle.bind(this))
+            .on('mousedown', this.onDragStart.bind(this))
+            .on('mouseup', this.onDragEnd.bind(this))
+            .on('mouseupoutside', this.onDragEnd.bind(this))
+            .on('mousemove', this.onDragMove.bind(this, gizmo));
+
+        return gizmo;
+    }
+
+    createSpawnRadiusGizmo(clr = 0x00FF00) {
+        const gizmo = new PIXI.Graphics();
+        gizmo.lineStyle(1, clr, 1);
+        gizmo.drawCircle(0, 0, this.settings.spawnRadius);
+        return gizmo;
+    }
+
+
 
     calculateMoleculeOpacity() {
         const diff = Math.random() * this.settings.opacityJitter / 100;
@@ -302,6 +419,8 @@ export default class MoleculeEmitter {
         for (let i = 0; i < this.molecules.length; i++) {
             this.molecules[i].setSize(size);
         }
+
+        this.initBoundsElement();
     }
 
     setOpacityJitter(value) {
@@ -356,7 +475,40 @@ export default class MoleculeEmitter {
             this.container.addChild(this.highlightGizmo);
         }
 
-        this.recreateMolecules();
+        if (this.mlcv.settings.debug === true) {
+            this.initBoundsElement();
+        } else {
+            this.boundsElementIsOutdated = true;
+        }
+
+        this.initMolecules();
+    }
+
+    /**
+     * TODO refactor to setMolecules.
+     * @param {[type]} state [description]
+     */
+    setState(state) {
+        this.initMolecules(
+            this.settings.moleculeAmount,
+            state.molecules
+        );
+
+        // for (let i = 0; i < state.molecules.length; i++) {
+        //     const moleculeSettings = state.molecules[i];
+
+        //     const molecule = new Molecule(
+        //         this.mlcv,
+        //         moleculeSettings
+        //     );
+
+        //     this.molecules.push(molecule);
+        //     this.container.addChild(molecule.container);
+        // }
+    }
+
+    calculateMoleculesLimit() {
+        return Math.round(this.settings.moleculeAmount * this.mlcv.settings.qualityLevel / 100);
     }
 
     /**
@@ -432,6 +584,13 @@ export default class MoleculeEmitter {
             const molecule = this.molecules[i];
             molecule.toggleDebug(bool);
         }
+
+
+        if (bool === true) {
+            this.initBoundsElement();
+        } else if (this.boundsElement !== null) {
+            this.destroyBoundsElement();
+        }
     }
 
     on(eventType, func, targetObj = null) {
@@ -481,7 +640,7 @@ export default class MoleculeEmitter {
 
         for (let i = 0; i < this.molecules.length; i++) {
             const molecule = this.molecules[i];
-            state.molecules.push(molecule.export());
+            state.molecules.push(molecule.exportState());
         }
 
         return state;
