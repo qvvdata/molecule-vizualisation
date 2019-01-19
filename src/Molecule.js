@@ -4,10 +4,16 @@ import PixiEase from '../node_modules/pixi-ease/dist/index';
 
 export default class Molecule {
     /**
+     * @param {String}                id
      * @param {MoleculeVizualisation} mlcv
      * @param {Object}                customSettings
      */
-    constructor(mlcv, customSettings) {
+    constructor(id, mlcv, customSettings) {
+        /**
+         * @type {String}
+         */
+        this.id = id;
+
         /**
          * Reference to parent so we can access it.
          *
@@ -54,6 +60,11 @@ export default class Molecule {
             radius: 10,
 
             /**
+             * @type {Number}
+             */
+            rotation: 0,
+
+            /**
              * Scale of the entire object.
              *
              * @type {Number}
@@ -90,7 +101,6 @@ export default class Molecule {
          * @type {PIXI.Container}
          */
         this.container = new PIXI.Container();
-        this.container.rotation = Math.random() * (2 * Math.PI); // random rotation for now.
 
         /**
          * @type {?PIXI.Graphics}
@@ -118,6 +128,14 @@ export default class Molecule {
             pauseOnBlur: true
         });
 
+        /**
+         * Flag to see if the color has been changed before.
+         * need it to work around a pixi bug because the color
+         * does not want to change the first time.
+         * @type {Boolean}
+         */
+        this.firstColorChange = true;
+
         // this.animation = new PixiEase.angle(
         //     this.container,
         //     Math.PI * 2,
@@ -143,6 +161,7 @@ export default class Molecule {
 
     init() {
         this.container.position.set(this.settings.x, this.settings.y);
+        this.container.rotation = this.settings.rotation;
 
         // Take care of the left endpoint.
         if (this.endPointLeft !== null) { // if element exist first remove it from the renderer.
@@ -201,12 +220,15 @@ export default class Molecule {
     }
 
     createEndPointLeft() {
-        return this.createEndPoint(
+        const point = this.createEndPoint(
             this.settings.radius,
             this.settings.radius,
             this.settings.radius,
             this.settings.color
         );
+
+        point.tint = this.settings.color;
+        return point;
     }
 
     createEndPointRight() {
@@ -220,9 +242,17 @@ export default class Molecule {
 
     createEndPoint(x, y, radius, color) {
         const circle = new PIXI.Graphics();
-        circle.beginFill(color);
+
+        // Use white color or tinting will not work.
+        circle.beginFill(0xFFFFFF);
         circle.drawCircle(x, y, radius);
         circle.endFill();
+
+        // We use a special property tint to set the color.
+        // the pixi library can handle changing the tint
+        // but not the actual color of the object drawn...
+        circle.tint = color;
+
         return circle;
     }
 
@@ -240,7 +270,7 @@ export default class Molecule {
         const halfLineLenghtDiff = lineLengthDiff / 2;
 
         const line = new PIXI.Graphics();
-        line.lineStyle(this.settings.lineThickness, this.settings.color);
+        line.lineStyle(this.settings.lineThickness, 0xFFFFFF);
 
         // We move the line to the right by radius * 2 so it does not overlap the circle.
         // After that we nudge the line half the length diff so it stays centered between
@@ -250,6 +280,12 @@ export default class Molecule {
         // Draw the line to the other side.
         // After that we nudge the line by half the linelenghtdiff so the line stays centered.
         line.lineTo(startX + lineSize + halfLineLenghtDiff, this.settings.radius);
+
+        // We use a special property tint to set the color.
+        // the pixi library can handle changing the tint
+        // but not the actual color of the object drawn...
+        line.tint = this.settings.color;
+
         return line;
     }
 
@@ -267,6 +303,7 @@ export default class Molecule {
 
     render(elapsed) {
         this.container.rotation -= (0.01 * this.container.scale.x);
+        this.settings.rotation = this.container.rotation;
         this.animation.update(elapsed);
     }
 
@@ -284,22 +321,59 @@ export default class Molecule {
     }
 
     exportState() {
-        return Helpers.mergeDeep({}, this.settings);
+        return {
+            id: this.id,
+            settings: Helpers.mergeDeep({}, this.settings)
+        };
     }
 
     /**
      * TODO:
      * @param {Object} See exportState for object description.
      */
-    importState(state) {
-        // if (typeof state['color'] === 'number') {
+    setState(state) {
+        if (state.settings !== undefined) {
+            // Check each setting and run setter.
+            // if (typeof state['color'] === 'number') {
 
-        // }
+            // }
+        }
     }
 
     /**
      * Setters
      */
+
+    /**
+     * @param {Number} color In Hex.
+     */
+    setColor(color) {
+        this.PixiEaseList.tint(
+            this.endPointLeft,
+            this.settings.color,
+            1000, {
+                ease: 'easeInOutSine'
+            }
+        );
+
+        this.PixiEaseList.tint(
+            this.endPointRight,
+            this.settings.color,
+            1000, {
+                ease: 'easeInOutSine'
+            }
+        );
+
+        this.PixiEaseList.tint(
+            this.connectingLine,
+            this.settings.color,
+            1000, {
+                ease: 'easeInOutSine'
+            }
+        );
+
+        this.settings.color = color;
+    }
 
     setLineLengthScale(scale) {
         this.settings.lineLengthScale = scale;

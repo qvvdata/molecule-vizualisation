@@ -4,10 +4,16 @@ import * as PIXI from '../node_modules/pixi.js/dist/pixi';
 
 export default class MoleculeEmitter {
     /**
-     * @param {MoleculeVizualisation}
-     * @param {Object} settings
+     * @param {String}                id
+     * @param {MoleculeVizualisation} mlcv
+     * @param {Object}                customSettings
      */
-    constructor(mlcv = null, customSettings) {
+    constructor(id, mlcv = null, customSettings = {}) {
+        /**
+         * @type {String}
+         */
+        this.id = id;
+
         /**
          * @type {MoleculeVizualisation}
          */
@@ -24,6 +30,9 @@ export default class MoleculeEmitter {
          * @type {Object}
          */
         this.defaultSettings = {
+            // Color for the molecules.
+            color: 0x000000,
+
             // X position.
             x: 0,
 
@@ -151,31 +160,36 @@ export default class MoleculeEmitter {
         }
     }
 
-    generateMolecules(limit, preconfiguredMolecules = []) {
+    generateMolecules(amount, preconfiguredMolecules = []) {
         const molecules = [];
-        for (let i = 0; i < limit; i++) {
-            const molecule = this.generateMolecule(preconfiguredMolecules[i]);
+        for (let i = 0; i < amount; i++) {
+            const molecule = this.generateMolecule(
+                preconfiguredMolecules[i].id,
+                preconfiguredMolecules[i].settings
+            );
             molecules.push(molecule);
         }
 
         return molecules;
     }
 
-    generateMolecule(settings = undefined) {
+    generateMolecule(id, settings = undefined) {
         if (settings === undefined) {
             settings = this.generateMoleculeSettings();
         }
 
-        return new Molecule(this.mlcv, settings);
+        return new Molecule(id, this.mlcv, settings);
     }
 
     generateMoleculeSettings() {
         const position = this.calculateMoleculePosition();
 
         const settings = {
+            color: this.settings.color,
             x: position.x,
             y: position.y,
             radius: this.settings.moleculePointRadius,
+            rotation: Math.random() * (2 * Math.PI),
             size: this.settings.moleculeSize,
             lineThickness: this.settings.moleculeLineThickness,
             lineLengthScale: this.settings.moleculeLineLengthScale
@@ -256,7 +270,6 @@ export default class MoleculeEmitter {
 
             this.boundsElementIsOutdated = false;
         } else {
-
             this.boundsElementIsOutdated = true;
         }
     }
@@ -378,6 +391,18 @@ export default class MoleculeEmitter {
      */
 
     /**
+     * @param {Number} color In Hex.
+     */
+    setColor(color) {
+        this.settings.color = color;
+
+        // Update all molecule sizes.
+        for (let i = 0; i < this.molecules.length; i++) {
+            this.molecules[i].setColor(color);
+        }
+    }
+
+    /**
      * @param {Number}
      */
     setMoleculeLineLengthScale(scale) {
@@ -484,27 +509,62 @@ export default class MoleculeEmitter {
         this.initMolecules();
     }
 
-    /**
-     * TODO refactor to setMolecules.
-     * @param {[type]} state [description]
-     */
+    setSettings(settings) {
+        // Todo implement.
+        // check if option exists.
+        // call setter.
+        console.log('Not yet implemented');
+    }
+
     setState(state) {
-        this.initMolecules(
-            this.settings.moleculeAmount,
-            state.molecules
-        );
+        if (state.settings !== undefined) {
+            this.setSettings(state.settings);
+        }
 
-        // for (let i = 0; i < state.molecules.length; i++) {
-        //     const moleculeSettings = state.molecules[i];
+        if (state.molecules !== undefined) {
+            setStateMolecules(state.molecules);
+        }
+    }
 
-        //     const molecule = new Molecule(
-        //         this.mlcv,
-        //         moleculeSettings
-        //     );
+    /**
+     * Work in progress.
+     * @param {[type]} moleculesState [description]
+     */
+    setStateMolecules(moleculesState) {
+        // Get all ids from the state.
 
-        //     this.molecules.push(molecule);
-        //     this.container.addChild(molecule.container);
-        // }
+        // Loop through the molecules and remove the ones
+        //
+        for (let i = 0; i < moleculesState.length; i++) {
+            const state = moleculesState[i];
+
+            const molecule = this.findMoleculeById(state.id);
+
+            if (molecule !== null) {
+                molecule.setState(state);
+            } else {
+                // todo create new molecule.
+            }
+        }
+
+        // Todo. remove all molecules that are not part of this state.
+    }
+
+
+    /**
+     * @param  {string} id
+     * @return {?Molecule}
+     */
+    findMoleculeById(id) {
+        for (let i = 0; i < this.molecules.length; i++) {
+            const molecule = this.molecules[i];
+
+            if (molecule.id === id) {
+                return molecule;
+            }
+        }
+
+        return null;
     }
 
     calculateMoleculesLimit() {
@@ -634,6 +694,7 @@ export default class MoleculeEmitter {
      */
     exportState() {
         const state = {
+            id: this.id,
             settings: Helpers.mergeDeep({}, this.settings),
             molecules: []
         };

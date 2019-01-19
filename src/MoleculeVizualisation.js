@@ -76,7 +76,7 @@ export default class MoleculeVizualisation {
             // amount to improve performance.
             // Off course when you scale down the amount of molecules the viz might not
             // look as perfect anymore.
-            qualityLevel: 30
+            qualityLevel: 100
         };
 
         /**
@@ -291,6 +291,22 @@ export default class MoleculeVizualisation {
     }
 
     /**
+     * @param  {string} id 
+     * @return {?MoleculeEmitter} 
+     */
+    findEmitterById(id) {
+        for (let i = 0; i < this.moleculeEmitters.length; i++) {
+            const emitter = this.moleculeEmitters[i];
+
+            if (emitter.id === id) {
+                return emitter;
+            }
+        }
+
+        return null;
+    }
+    
+    /**
      * Getters
      */
     getCenterCoordinates() {
@@ -303,17 +319,33 @@ export default class MoleculeVizualisation {
     /**
      * Setters
      */
+    importState(state) {
+        for (let i = 0; i < state.emitters.length; i++) {
+            this.importEmitter(state.emitters[i]);
+        }
+    }       
+
+    importEmitter(state) {
+        const emitter = new MoleculeEmitter(
+            emitterState.id,
+            this,
+            emitterState.settings
+        );
+
+        emitter.initMolecules(emitterState.molecules);
+        this.addEmitter(emitter, false);
+    }
+
     setState(state) {
         for (let i = 0; i < state.emitters.length; i++) {
-            const emitterState = state.emitters[i];
+            // Try to find an emitter with the same id.
+            const foundEmitter = this.findEmitterById(emitterState.id);
 
-            const emitter = new MoleculeEmitter(
-                this,
-                emitterState.settings
-            );
-
-            emitter.setState(emitterState);
-            this.addEmitter(emitter, false);
+            if (foundEmitter !== null) {
+                foundEmitter.setState(state.emitters[i])
+            } else {
+                this.importEmitter(state.emitters[i]);
+            }
         }
     }
 
@@ -376,7 +408,7 @@ export default class MoleculeVizualisation {
             scale = widthScaleDiff;
         }
 
-        this.setState(state);
+        this.importState(state);
 
         // testing animation.
         // setTimeout(() => {

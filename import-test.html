@@ -8,16 +8,26 @@
 </head>
 <body class="import-test">
 
+    <div id="controls">
+        <button id="appendThyroid">Append thyroid</button>
+    </div>
+
     <div class="chart-holder chart-holder-original"></div>
     <div class="chart-holder chart-holder-two-third"></div>
     <div class="chart-holder chart-holder-half"></div>
 
-    <div class="chart-holder chart-holder-random"></div>
+    <!-- <div class="chart-holder chart-holder-random"></div> -->
 
 <script type="module">
 import './dist/MoleculeVizualisation.js';
 import MLCV_ENUMS from './src/enums.js';
 import MLCV_STATES from './src/mlcvStates.js';
+
+import thyroid from './src/states/thyroid.js';
+import figure from './src/states/figure.js';
+
+
+const vizList = [];
 
 const settings = {
     mode: MLCV_ENUMS.VIEW,
@@ -31,7 +41,7 @@ const moleculeVizualisationOriginalSize = new MoleculeVizualisation(
     document, '.chart-holder-original', settings
 );
 moleculeVizualisationOriginalSize.init()
-    .importDefaultState(MLCV_STATES.Default)
+    .importDefaultState(figure)
     .startRenderLoop();
 
 
@@ -39,16 +49,19 @@ const moleculeVizualisationTwoThird = new MoleculeVizualisation(
     document, '.chart-holder-two-third', settings
 );
 moleculeVizualisationTwoThird.init()
-    .importDefaultState(MLCV_STATES.Default)
+    .importDefaultState(figure)
     .startRenderLoop();
 
-// const moleculeVizualisationHalfSize = new MoleculeVizualisation(
-//     document, '.chart-holder-half', settings
-// );
-// moleculeVizualisationHalfSize.init()
-//     .importDefaultState(MLCV_STATES.Default)
-//     .startRenderLoop();
+const moleculeVizualisationHalfSize = new MoleculeVizualisation(
+    document, '.chart-holder-half', settings
+);
+moleculeVizualisationHalfSize.init()
+    .importDefaultState(figure)
+    .startRenderLoop();
 
+vizList.push(moleculeVizualisationOriginalSize);
+vizList.push(moleculeVizualisationTwoThird);
+vizList.push(moleculeVizualisationHalfSize);
 
 // const moleculeVizualisationRandomSize = new MoleculeVizualisation(
 //     document, '.chart-holder-random', settings
@@ -56,6 +69,18 @@ moleculeVizualisationTwoThird.init()
 // moleculeVizualisationRandomSize.init()
 //     .importDefaultState(MLCV_STATES.Default)
 //     .startRenderLoop();
+//
+
+
+function loopOverViz(functionName, argumentArray) {
+    for (let i = 0; i < vizList.length; i++) {
+        vizList[i][functionName](...argumentArray);
+    }
+}
+
+window.document.querySelector('#appendThyroid').addEventListener('click', () => {
+    loopOverViz('importState', [thyroid]);
+});
 </script>
 </body>
 </html>

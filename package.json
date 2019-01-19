@@ -16,7 +16,7 @@
       "requestAnimationFrame": true
     },
     "rules": {
-        "no-param-reassign": 0
+      "no-param-reassign": 0
     }
   },
   "devDependencies": {
@@ -30,6 +30,7 @@
   "dependencies": {
     "dat.gui": "^0.7.5",
     "pixi-ease": "^1.1.2",
-    "pixi.js": "^4.8.5"
+    "pixi.js": "^4.8.5",
+    "uniqid": "^5.0.3"
   }
 }

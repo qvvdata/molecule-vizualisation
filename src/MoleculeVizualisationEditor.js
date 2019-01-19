@@ -1,8 +1,8 @@
 import * as dat from '../node_modules/dat.gui/build/dat.gui';
 import datPresets from './dat.gui.presets';
-import MLCV_STATES from './mlcvStates';
 import MoleculeEmitter from './MoleculeEmitter';
 import * as PIXI from '../node_modules/pixi.js/dist/pixi';
+import uniqid from '../node_modules/uniqid/index';
 
 export default class MoleculeVizualisationEditor {
     /**
@@ -22,7 +22,7 @@ export default class MoleculeVizualisationEditor {
          *
          * @type {MoleculeEmitter}
          */
-        this.guiEmitter = new MoleculeEmitter();
+        this.guiEmitter = new MoleculeEmitter('New Emitter');
 
         /**
          * Selected emitter in the editor.
@@ -146,7 +146,6 @@ export default class MoleculeVizualisationEditor {
      * @param {?MoleculeEmitter} emitterToCopy
      */
     placeEmitter(x = undefined, y = undefined, emitterToCopy = null) {
-        console.log('Placing emitter');
         let emitterToUse = this.guiEmitter;
 
         if (emitterToCopy instanceof MoleculeEmitter) {
@@ -167,7 +166,11 @@ export default class MoleculeVizualisationEditor {
         state.settings.y = y;
 
         // Create new emitter based on exported settings.
-        const emitter = new MoleculeEmitter(this.mlcv, state.settings);
+        const emitter = new MoleculeEmitter(
+            uniqid(),
+            this.mlcv,
+            state.settings
+        );
 
         // Add emitter to the vizualisation.
         this.mlcv.addEmitter(emitter);
@@ -258,6 +261,7 @@ export default class MoleculeVizualisationEditor {
             folder.add(this, 'duplicateSelectedEmitter').name('Duplicate');
         }
 
+        const mlcColorContr = folder.addColor(emitter.settings, 'color');
         const mlcAmountContr = folder.add(emitter.settings, 'moleculeAmount', 1, 150).step(1).name('Molecule amount');
         const spawnRadiusContr = folder.add(emitter.settings, 'spawnRadius', 0, 400).step(1).name('Spawn radius');
         const moleculeSizeContr = folder.add(emitter.settings, 'moleculeSize', 0, 500).step(1).name('Molecule Size');
@@ -269,8 +273,12 @@ export default class MoleculeVizualisationEditor {
 
         if (placedEmitter === true) {
             folder.add(emitter, 'randomizePositions').name('Randomize positions');
-            folder.add(emitter, 'recreateMolecules').name('Recreate molecules');
+            folder.add(emitter, 'initMolecules').name('Recreate molecules');
             folder.add(this, 'removeEmitter').name('Remove emitter');
+
+            mlcColorContr.onChange(value => {
+                emitter.setColor(value);
+            });
 
             mlcAmountContr.onChange(value => {
                 emitter.initMolecules();
@@ -355,12 +363,9 @@ export default class MoleculeVizualisationEditor {
         ].join(';'));
 
         const mlcvState = this.mlcv.exportState();
-        MLCV_STATES[this.exportStateId] = mlcvState;
-
-        console.log(MLCV_STATES);
 
         textArea.innerHTML = '/* eslint-disable */\n';
-        textArea.innerHTML += `export default ${JSON.stringify(MLCV_STATES, undefined, 4)}`;
+        textArea.innerHTML += `export default ${JSON.stringify(mlcvState, undefined, 4)}`;
 
         holder.appendChild(closeBtn);
         holder.appendChild(textArea);
