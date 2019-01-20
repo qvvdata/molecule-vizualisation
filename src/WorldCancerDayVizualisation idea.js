@@ -24,6 +24,8 @@ export default class WorldCancerDayVizualisation {
         this.mlcv.init()
             .importDefaultState(MLCV_STATES.Default)
             .startRenderLoop();
+
+        // Start looping animation?
     }
 
     initOrgans() {
@@ -40,29 +42,75 @@ export default class WorldCancerDayVizualisation {
     }
 
 
-    convertOrganTextureIntoCoordinates(organ) {
-        const coordinates = [];
 
-        // Get texture of organ.
+    getMostPrevalentCancerTypeData(gender, ageGroup) {
+        // If gender and a ageGroup are not given account for that.
+        // Find the most prevalent cancer type
 
-        return coordinates;
+        // Figure out all the data here.
     }
 
-    createOrganMolecules(organ) {
-        const coordinates = convertOrganTextureIntoCoordinates(organ)
 
-        // Create new emitter with default settings.
-        // Should actually be a group because we will not emit anything.
 
-        // loop over pixel coordinates and place molecules.
-        // Have some randomization
+    activateExplorationMode() {
+        // Zoom out.
 
-        // Add emiter to vizualisation
+        // Show click markers.
+
+        // Activate click markers.
+
+        // Activate looping animation.
     }
 
-    // Create and place the
-    initOrganMarkers() {
+    disableExplorationMode() {
+        // Turn on click handlers.
+    }
+
+    onClickMarker() {
+        // Find the emitter id.
+
+        // Zoom to that emitter.
+
+        // On zoom end show the text overlay.
+    }
+
+    onClickFilter() {
+        // get type of filter from data-attr.
+        // Get value of from data-attr
+
+        // save value to filter property.
+    }
+
+    onClickStartStoryMode() {
+        const cancerData = this.getMostPrevalentCancerTypeData(this.gender, this.ageGroup);
+
+        // Zoom to emitter with the id of the cancer
+        // this.mlcv.zoomOnEmitterWithId(id);
+
+
+        // merge in the cancer state with the default state.
+
+        // Set the combined state to the mlcv.
+        // this.mlcv.setState(defaultSTate);
+    }
+
+    onClickPrevious() {
+        this.currentStep--;
+    }
+
+    onClickNext() {
+        this.currentStep++;
+
+        this.showStep(++this.currentStep);
+    }
+
+    showStep(step) {
 
     }
+
+    showStep1() {
+
+    }
+
 }
 

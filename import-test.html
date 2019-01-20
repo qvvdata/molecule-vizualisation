@@ -9,6 +9,8 @@
 <body class="import-test">
 
     <div id="controls">
+        <button id="resetZoom">Reset zoom</button>
+        <button id="zoomThyroid">Zoom on thyroid</button>
         <button id="appendThyroid">Append thyroid</button>
     </div>
 
@@ -72,7 +74,7 @@ vizList.push(moleculeVizualisationHalfSize);
 //
 
 
-function loopOverViz(functionName, argumentArray) {
+function loopOverViz(functionName, argumentArray = []) {
     for (let i = 0; i < vizList.length; i++) {
         vizList[i][functionName](...argumentArray);
     }
@@ -80,6 +82,14 @@ function loopOverViz(functionName, argumentArray) {
 
 window.document.querySelector('#appendThyroid').addEventListener('click', () => {
     loopOverViz('importState', [thyroid]);
+});
+
+window.document.querySelector('#zoomThyroid').addEventListener('click', () => {
+    loopOverViz('zoomOnEmitterWithId', ['thyroid', 3]);
+});
+
+window.document.querySelector('#resetZoom').addEventListener('click', () => {
+    loopOverViz('resetZoom', [2000]);
 });
 </script>
 </body>

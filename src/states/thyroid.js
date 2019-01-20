@@ -6,6 +6,7 @@ export default {
     },
     "emitters": [
         {
+            "id": "thyroid",
             "settings": {
                 "color": 16515072,
                 "x": 249.43359375,

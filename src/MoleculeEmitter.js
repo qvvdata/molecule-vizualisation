@@ -1,6 +1,7 @@
 import Helpers from './Helpers';
 import Molecule from './Molecule';
 import * as PIXI from '../node_modules/pixi.js/dist/pixi';
+import uniqid from '../node_modules/uniqid/index';
 
 export default class MoleculeEmitter {
     /**
@@ -146,7 +147,7 @@ export default class MoleculeEmitter {
         const limit = this.calculateMoleculesLimit();
 
         if (this.mlcv !== null) {
-            this.removeMolecules();
+            this.removeAllExistingMolecules();
 
             this.molecules = this.generateMolecules(this.settings.moleculeAmount, preconfiguredMolecules);
 
@@ -163,10 +164,17 @@ export default class MoleculeEmitter {
     generateMolecules(amount, preconfiguredMolecules = []) {
         const molecules = [];
         for (let i = 0; i < amount; i++) {
-            const molecule = this.generateMolecule(
-                preconfiguredMolecules[i].id,
-                preconfiguredMolecules[i].settings
-            );
+            let molecule;
+
+            if (preconfiguredMolecules[i] !== undefined) {
+                molecule = this.generateMolecule(
+                    preconfiguredMolecules[i].id,
+                    preconfiguredMolecules[i].settings
+                );
+            } else {
+                molecule = this.generateMolecule(uniqid());
+            }
+
             molecules.push(molecule);
         }
 
@@ -237,10 +245,12 @@ export default class MoleculeEmitter {
         return molecules;
     }
 
-    removeMolecules() {
+    removeAllExistingMolecules() {
         for (let i = 0; i < this.molecules.length; i++) {
             this.container.removeChild(this.molecules[i].container);
         }
+
+        this.molecules = [];
     }
 
     createGizmos() {
@@ -384,6 +394,23 @@ export default class MoleculeEmitter {
 
             this.setPosition(newPosition);
         }
+    }
+
+    /**
+     * Getters
+     */
+
+    /**
+     * @return {{
+     *         x: Number,
+     *         y: Number
+     * }}
+     */
+    getPosition() {
+        return {
+            x: this.container.x,
+            y: this.container.y
+        };
     }
 
     /**
@@ -538,18 +565,23 @@ export default class MoleculeEmitter {
         for (let i = 0; i < moleculesState.length; i++) {
             const state = moleculesState[i];
 
-            const molecule = this.findMoleculeById(state.id);
+            let molecule = this.findMoleculeById(state.id);
 
             if (molecule !== null) {
                 molecule.setState(state);
             } else {
-                // todo create new molecule.
+                molecule = this.generateMolecule(state.id, this.mlcv, state.settings);
+
+                this.addMolecule(molecule);
             }
         }
 
         // Todo. remove all molecules that are not part of this state.
     }
 
+    addMolecule(molecule) {
+        this.container.addChild(molecule.container);
+    }
 
     /**
      * @param  {string} id

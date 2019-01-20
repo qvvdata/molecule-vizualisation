@@ -13,7 +13,8 @@
     "extends": "eslint-config-qvvdata",
     "globals": {
       "document": true,
-      "requestAnimationFrame": true
+      "requestAnimationFrame": true,
+      "window": true
     },
     "rules": {
       "no-param-reassign": 0

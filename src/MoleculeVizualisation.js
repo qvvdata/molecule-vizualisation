@@ -58,6 +58,15 @@ export default class MoleculeVizualisation {
         };
 
         /**
+         * This is the fallback default scale of the viz.
+         * This can change when importing presets that were created 
+         * on a different size canvas.
+         * 
+         * @type {Number}
+         */
+        this.defaultScale = 1;
+
+        /**
          * Will be overwritten by custom settings.
          *
          * @type {Object}
@@ -86,9 +95,7 @@ export default class MoleculeVizualisation {
          */
         this.settings = Helpers.mergeDeep(this.defaultSettings, customSettings);
 
-        this.PixiEaseList = new PixiEase.list({
-            pauseOnBlur: true
-        });
+        
 
         /**
          * @type {PIXIE.app}
@@ -105,6 +112,33 @@ export default class MoleculeVizualisation {
         this.molecules = [];
 
 
+        /**
+         * Animation properties.
+         */
+        
+        /**
+         * List to hold PixiEase animations.
+         * 
+         * @type {PixiEase}
+         */
+        this.PixiEaseList = new PixiEase.list({
+            pauseOnBlur: true
+        });
+
+        /**
+         * Holds reference to the current zoom animation.
+         * We only allow one zoom event to run at once
+         * otherwise there will be multiple zoom animations
+         * running at once and you get weird jumps between
+         * zooms.
+         * 
+         * @type {PixieEase.to}
+         */
+        this.zoomAnimation = null;
+
+        /**
+         * Check if we have to activate the editor
+         */
         if (this.settings.mode === MLCV_ENUMS.MODES.EDIT) {
             this.editor = new MlcvEditor(document, this);
         }
@@ -305,7 +339,7 @@ export default class MoleculeVizualisation {
 
         return null;
     }
-    
+
     /**
      * Getters
      */
@@ -327,12 +361,26 @@ export default class MoleculeVizualisation {
 
     importEmitter(state) {
         const emitter = new MoleculeEmitter(
-            emitterState.id,
+            state.id,
             this,
-            emitterState.settings
+            state.settings
         );
 
-        emitter.initMolecules(emitterState.molecules);
+        emitter.container.interactive = true;
+
+        // We use an arrow function here instead of a bind because
+        // the emitter events automatically add an event object
+        // to the arguments of the called function and we don't 
+        // want that.
+        // emitter.on('click', () => {
+        //     this.centerOnEmitterWithId(state.id);
+        // });
+
+        emitter.on('click', () => {
+            this.zoomOnEmitterWithId(state.id, 2)
+        });
+
+        emitter.initMolecules(state.molecules);
         this.addEmitter(emitter, false);
     }
 
@@ -410,23 +458,10 @@ export default class MoleculeVizualisation {
 
         this.importState(state);
 
-        // testing animation.
-        // setTimeout(() => {
-        //     this.PixiEaseList.to(
-        //         this.pixiApp.stage,
-        //         {
-        //             scale: scale
-        //         },
-        //         1000,
-        //         {
-        //             ease: 'easeInOutSine'
-        //         }
-        //     );
-
-        // }, 1000);
-
         this.pixiApp.stage.scale.x = scale;
         this.pixiApp.stage.scale.y = scale;
+
+        this.defaultScale = scale;
 
         return this;
     }
@@ -450,5 +485,79 @@ export default class MoleculeVizualisation {
         }
 
         return -1;
+    }
+
+    centerOnEmitterWithId(id, offsetX = 0, offsetY = 0) {
+        // We use the x scale because we expect both scales to always be equal.
+        this.zoomOnEmitterWithId(id, this.pixiApp.stage.scale.x, offsetX, offsetY);
+    }
+
+    zoomOnEmitterWithId(id, scale, offsetX = 0, offsetY = 0) {
+        const emitter = this.findEmitterById(id);
+
+        if (emitter !== null) {
+            const pos = emitter.getPosition();
+            this.zoomOnCoordinates(pos.x, pos.y, scale, offsetX, offsetY);
+        } else {
+            console.log('Cannot zoom on non-existing emitter', id);
+        }
+    }
+
+    endCurrentZoomAnimation() {
+        if (this.zoomAnimation !== null) {
+            // There is no cancel or end function that works properly
+            // this was the only way to stop the current running animation.
+            this.zoomAnimation.pause = true;
+        }
+        
+        this.zoomAnimation = null;
+    }
+
+    zoomOnCoordinates(x, y, scale, offsetX = 0, offsetY = 0, duration = 1000) {
+        const stage = this.pixiApp.stage;
+        const renderer = this.pixiApp.renderer;
+
+        this.endCurrentZoomAnimation();
+
+        this.PixiEaseList.to(
+            this.pixiApp.stage,
+            {
+                x: renderer.width / 2,
+                y: renderer.height / 2,
+                scale: scale,
+                pivot: {
+                    x: x - offsetX,
+                    y: y - offsetY
+                }
+            },
+            duration,
+            {
+                ease: 'easeInOutSine'
+            }
+        );
+    }
+
+    resetZoom(duration = 1000) {
+        const stageScale = this.pixiApp.stage.scale;
+        if (stageScale.x !== this.defaultScale && stageScale.y !== this.defaultScale) {
+            this.endCurrentZoomAnimation();
+
+            this.zoomAnimation = this.PixiEaseList.to(
+                this.pixiApp.stage,
+                {
+                    x: 0,
+                    y: 0,
+                    scale: this.defaultScale,
+                    pivot: {
+                        x: 0,
+                        y: 0
+                    }
+                },
+                duration,
+                {
+                    ease: 'easeInOutSine'
+                }
+            );
+        }
     }
 }

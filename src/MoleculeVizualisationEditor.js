@@ -179,6 +179,8 @@ export default class MoleculeVizualisationEditor {
         emitter.on('click', this.onClickEmitter.bind(this, emitter), 'dragGizmo');
     }
 
+
+
     toggleAnimation() {
         // Todo.
     }
