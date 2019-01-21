@@ -24,7 +24,6 @@
     "@babel/core": "^7.2.2",
     "babel-loader": "^8.0.5",
     "eslint-config-qvvdata": "github:qvvdata/eslint-config-qvvdata",
-    "rstatsjs": "github:spite/rstats",
     "webpack": "^4.28.1",
     "webpack-cli": "^3.2.1"
   },
@@ -32,6 +31,7 @@
     "dat.gui": "^0.7.5",
     "pixi-ease": "^1.1.2",
     "pixi.js": "^4.8.5",
+    "rstatsjs": "github:spite/rstats",
     "uniqid": "^5.0.3"
   }
 }
