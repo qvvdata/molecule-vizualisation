@@ -344,30 +344,38 @@ export default class Molecule {
      * Setters
      */
 
+    shake(amountToShake = 1, duration = undefined) {
+        if (typeof duration !== 'number') {
+            this.PixiEaseList.shake(this.container, amountToShake, duration);
+        } else {
+            this.PixiEaseList.shake(this.container, amountToShake, duration);
+        }
+    }
+
     /**
      * @param {Number} color In Hex.
      */
-    setColor(color) {
+    setColor(color, duration = 1000) {
         this.PixiEaseList.tint(
             this.endPointLeft,
-            this.settings.color,
-            1000, {
+            color,
+            duration, {
                 ease: 'easeInOutSine'
             }
         );
 
         this.PixiEaseList.tint(
             this.endPointRight,
-            this.settings.color,
-            1000, {
+            color,
+            duration, {
                 ease: 'easeInOutSine'
             }
         );
 
         this.PixiEaseList.tint(
             this.connectingLine,
-            this.settings.color,
-            1000, {
+            color,
+            duration, {
                 ease: 'easeInOutSine'
             }
         );
