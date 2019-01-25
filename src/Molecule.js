@@ -122,41 +122,14 @@ export default class Molecule {
          */
         this.boundsElement = null;
 
-        this.init();
-
+        /**
+         * @type {PixiEase.list}
+         */
         this.PixiEaseList = new PixiEase.list({
             pauseOnBlur: true
         });
 
-        /**
-         * Flag to see if the color has been changed before.
-         * need it to work around a pixi bug because the color
-         * does not want to change the first time.
-         * @type {Boolean}
-         */
-        this.firstColorChange = true;
-
-        // this.animation = new PixiEase.angle(
-        //     this.container,
-        //     Math.PI * 2,
-        //     1,
-        //     0,
-        //     {
-
-        //     }
-        // );
-        //
-        // this.animation = new PixiEase.shake(this.container, 2, 2000, {
-        //     repeat: true,
-        //     reverse: true
-        // });
-
-        // this.animation = new PixiEase.tint(this.line, [0x0000FF, 0xFFFFFF], 1000, {
-        //     repeat: true,
-        //     reverse: true
-        // });
-
-        // console.log(this.animation);
+        this.init();
     }
 
     init() {
@@ -205,18 +178,7 @@ export default class Molecule {
         this.container.scale.y = this.settings.scale;
         this.container.scale.x = this.settings.scale;
 
-        this.animation = new PixiEase.to(
-            this.container,
-            {
-                x: this.x + Math.random() * 50,
-                y: this.y + Math.random() * 50
-            },
-            5000,
-            {
-                repeat: true,
-                reverse: true
-            }
-        );
+
     }
 
     createEndPointLeft() {
@@ -304,7 +266,7 @@ export default class Molecule {
     render(elapsed) {
         this.container.rotation -= (0.01 * this.container.scale.x);
         this.settings.rotation = this.container.rotation;
-        this.animation.update(elapsed);
+        // this.moveAnimation.update(elapsed);
     }
 
     toggleDebug(bool) {
@@ -328,20 +290,22 @@ export default class Molecule {
     }
 
     /**
-     * TODO:
      * @param {Object} See exportState for object description.
      */
     setState(state) {
+        // console.log('setting state', state);
         if (state.settings !== undefined) {
-            // Check each setting and run setter.
-            // if (typeof state['color'] === 'number') {
+            const settings = state.settings;
 
-            // }
+            if (typeof settings['color'] === 'number') {
+                this.setColor(settings['color']);
+            }
         }
     }
 
+
     /**
-     * Setters
+     * Animations
      */
 
     shake(amountToShake = 1, duration = undefined) {
@@ -353,34 +317,51 @@ export default class Molecule {
     }
 
     /**
+     * Getters
+     */
+
+    getGlobalPosition() {
+        return {
+            x: this.container.worldTransform.x,
+            y: this.container.worldTransform.y
+        };
+    }
+
+    /**
+     * Setters
+     */
+
+    /**
      * @param {Number} color In Hex.
      */
     setColor(color, duration = 1000) {
-        this.PixiEaseList.tint(
-            this.endPointLeft,
-            color,
-            duration, {
-                ease: 'easeInOutSine'
-            }
-        );
+        if (this.settings.color !== color) {
+            this.PixiEaseList.tint(
+                this.endPointLeft,
+                color,
+                duration, {
+                    ease: 'easeInOutSine'
+                }
+            );
 
-        this.PixiEaseList.tint(
-            this.endPointRight,
-            color,
-            duration, {
-                ease: 'easeInOutSine'
-            }
-        );
+            this.PixiEaseList.tint(
+                this.endPointRight,
+                color,
+                duration, {
+                    ease: 'easeInOutSine'
+                }
+            );
 
-        this.PixiEaseList.tint(
-            this.connectingLine,
-            color,
-            duration, {
-                ease: 'easeInOutSine'
-            }
-        );
+            this.PixiEaseList.tint(
+                this.connectingLine,
+                color,
+                duration, {
+                    ease: 'easeInOutSine'
+                }
+            );
 
-        this.settings.color = color;
+            this.settings.color = color;
+        }
     }
 
     setLineLengthScale(scale) {

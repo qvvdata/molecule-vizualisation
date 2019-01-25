@@ -59,9 +59,9 @@ export default class MoleculeVizualisation {
 
         /**
          * This is the fallback default scale of the viz.
-         * This can change when importing presets that were created 
+         * This can change when importing presets that were created
          * on a different size canvas.
-         * 
+         *
          * @type {Number}
          */
         this.defaultScale = 1;
@@ -95,7 +95,7 @@ export default class MoleculeVizualisation {
          */
         this.settings = Helpers.mergeDeep(this.defaultSettings, customSettings);
 
-        
+
 
         /**
          * @type {PIXIE.app}
@@ -115,10 +115,10 @@ export default class MoleculeVizualisation {
         /**
          * Animation properties.
          */
-        
+
         /**
          * List to hold PixiEase animations.
-         * 
+         *
          * @type {PixiEase}
          */
         this.PixiEaseList = new PixiEase.list({
@@ -131,7 +131,7 @@ export default class MoleculeVizualisation {
          * otherwise there will be multiple zoom animations
          * running at once and you get weird jumps between
          * zooms.
-         * 
+         *
          * @type {PixieEase.to}
          */
         this.zoomAnimation = null;
@@ -325,8 +325,8 @@ export default class MoleculeVizualisation {
     }
 
     /**
-     * @param  {string} id 
-     * @return {?MoleculeEmitter} 
+     * @param  {string} id
+     * @return {?MoleculeEmitter}
      */
     findEmitterById(id) {
         for (let i = 0; i < this.moleculeEmitters.length; i++) {
@@ -357,7 +357,7 @@ export default class MoleculeVizualisation {
         for (let i = 0; i < state.emitters.length; i++) {
             this.importEmitter(state.emitters[i]);
         }
-    }       
+    }
 
     importEmitter(state) {
         const emitter = new MoleculeEmitter(
@@ -370,7 +370,7 @@ export default class MoleculeVizualisation {
 
         // We use an arrow function here instead of a bind because
         // the emitter events automatically add an event object
-        // to the arguments of the called function and we don't 
+        // to the arguments of the called function and we don't
         // want that.
         // emitter.on('click', () => {
         //     this.centerOnEmitterWithId(state.id);
@@ -387,10 +387,10 @@ export default class MoleculeVizualisation {
     setState(state) {
         for (let i = 0; i < state.emitters.length; i++) {
             // Try to find an emitter with the same id.
-            const foundEmitter = this.findEmitterById(emitterState.id);
+            const foundEmitter = this.findEmitterById(state.emitters[i].id);
 
             if (foundEmitter !== null) {
-                foundEmitter.setState(state.emitters[i])
+                foundEmitter.setStateMolecules(state.emitters[i].molecules);
             } else {
                 this.importEmitter(state.emitters[i]);
             }
@@ -509,7 +509,7 @@ export default class MoleculeVizualisation {
             // this was the only way to stop the current running animation.
             this.zoomAnimation.pause = true;
         }
-        
+
         this.zoomAnimation = null;
     }
 

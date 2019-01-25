@@ -536,34 +536,14 @@ export default class MoleculeEmitter {
         this.initMolecules();
     }
 
-    setSettings(settings) {
-        // Todo implement.
-        // check if option exists.
-        // call setter.
-        console.log('Not yet implemented');
-    }
-
-    setState(state) {
-        if (state.settings !== undefined) {
-            this.setSettings(state.settings);
-        }
-
-        if (state.molecules !== undefined) {
-            setStateMolecules(state.molecules);
-        }
-    }
-
     /**
-     * Work in progress.
-     * @param {[type]} moleculesState [description]
+     * @param {Array.<Object>} moleculesState
      */
-    setStateMolecules(moleculesState) {
-        // Get all ids from the state.
+    setStateMolecules(moleculesStates) {
+        // Todo. remove all molecules that are not part of this state.
 
-        // Loop through the molecules and remove the ones
-        //
-        for (let i = 0; i < moleculesState.length; i++) {
-            const state = moleculesState[i];
+        for (let i = 0; i < moleculesStates.length; i++) {
+            const state = moleculesStates[i];
 
             let molecule = this.findMoleculeById(state.id);
 
@@ -576,11 +556,12 @@ export default class MoleculeEmitter {
             }
         }
 
-        // Todo. remove all molecules that are not part of this state.
+
     }
 
     addMolecule(molecule) {
         this.container.addChild(molecule.container);
+        this.molecules.push(molecule);
     }
 
     /**
