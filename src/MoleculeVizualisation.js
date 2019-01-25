@@ -366,20 +366,6 @@ export default class MoleculeVizualisation {
             state.settings
         );
 
-        emitter.container.interactive = true;
-
-        // We use an arrow function here instead of a bind because
-        // the emitter events automatically add an event object
-        // to the arguments of the called function and we don't
-        // want that.
-        // emitter.on('click', () => {
-        //     this.centerOnEmitterWithId(state.id);
-        // });
-
-        emitter.on('click', () => {
-            this.zoomOnEmitterWithId(state.id, 2)
-        });
-
         emitter.initMolecules(state.molecules);
         this.addEmitter(emitter, false);
     }
@@ -514,7 +500,6 @@ export default class MoleculeVizualisation {
     }
 
     zoomOnCoordinates(x, y, scale, offsetX = 0, offsetY = 0, duration = 1000) {
-        const stage = this.pixiApp.stage;
         const renderer = this.pixiApp.renderer;
 
         this.endCurrentZoomAnimation();

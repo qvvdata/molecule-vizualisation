@@ -297,8 +297,54 @@ export default class Molecule {
         if (state.settings !== undefined) {
             const settings = state.settings;
 
-            if (typeof settings['color'] === 'number') {
-                this.setColor(settings['color']);
+            // Color.
+            if (typeof settings.color === 'number') {
+                this.setColor(settings.color);
+            }
+
+            // Line-length scale.
+            if (typeof settings.lineLengthScale === 'number') {
+                this.setLineLengthScale(settings.lineLengthScale);
+            }
+
+            // Line thickness.
+            if (typeof settings.lineThickness === 'number') {
+                this.setLineThickness(settings.lineThickness);
+            }
+
+            // Opacity.
+            if (typeof settings.opacity === 'number') {
+                this.setOpacity(settings.opacity);
+            }
+
+            // Radius.
+            if (typeof settings.radius === 'number') {
+                this.setRadius(settings.radius);
+            }
+
+            // Rotations.
+            if (typeof settings.rotation === 'number') {
+                this.setRotation(settings.rotation);
+            }
+
+            // Scale.
+            if (typeof settings.scale === 'number') {
+                this.setScale(settings.scale);
+            }
+
+            // Size.
+            if (typeof settings.size === 'number') {
+                this.setSize(settings.size);
+            }
+
+            // X.
+            if (typeof settings.x === 'number') {
+                this.setX(settings.x);
+            }
+
+            // Y.
+            if (typeof settings.y === 'number') {
+                this.setY(settings.y);
             }
         }
     }
@@ -308,7 +354,13 @@ export default class Molecule {
      * Animations
      */
 
-    shake(amountToShake = 1, duration = undefined) {
+    /**
+     * If duration is null the shake will continue indefinitely.
+     *
+     * @param {Number} amountToShake In pixels.
+     * @param {Number} duration      in ms.
+     */
+    shake(amountToShake = 1, duration = null) {
         if (typeof duration !== 'number') {
             this.PixiEaseList.shake(this.container, amountToShake, duration);
         } else {
@@ -320,6 +372,12 @@ export default class Molecule {
      * Getters
      */
 
+    /**
+     * @return {{
+     *         x: Number,
+     *         y: Number
+     * }}
+     */
     getGlobalPosition() {
         return {
             x: this.container.worldTransform.x,
@@ -365,15 +423,19 @@ export default class Molecule {
     }
 
     setLineLengthScale(scale) {
-        this.settings.lineLengthScale = scale;
+        if (this.settings.lineLengthScale !== scale) {
+            this.settings.lineLengthScale = scale;
 
-        this.init();
+            this.init();
+        }
     }
 
     setLineThickness(thickness) {
-        this.settings.lineThickness = thickness;
+        if (this.settings.lineThickness !== thickness) {
+            this.settings.lineThickness = thickness;
 
-        this.init();
+            this.init();
+        }
     }
 
     /**
@@ -383,88 +445,119 @@ export default class Molecule {
      * }} position
      */
     setPosition(position) {
+        // If checks to see if the values are
+        // the same are inside the setters.
         this.setX(position.x);
         this.setY(position.y);
     }
 
-    setX(x) {
-        this.settings.x = x;
+    setX(x, duration = 1000) {
+        if (this.settings.x !== x) {
+            this.settings.x = x;
 
-        this.PixiEaseList.to(
-            this.container,
-            {
-                x: x
-            },
-            1000,
-            {
-                ease: 'easeInOutSine'
-            }
-        );
+            this.PixiEaseList.to(
+                this.container,
+                {
+                    x: x
+                },
+                duration,
+                {
+                    ease: 'easeInOutSine'
+                }
+            );
+        }
     }
 
-    setY(y) {
-        this.settings.y = y;
+    setY(y, duration = 1000) {
+        if (this.settings.y !== y) {
+            this.settings.y = y;
 
-        this.PixiEaseList.to(
-            this.container,
-            {
-                y: y
-            },
-            1000,
-            {
-                ease: 'easeInOutSine'
-            }
-        );
+            this.PixiEaseList.to(
+                this.container,
+                {
+                    y: y
+                },
+                duration,
+                {
+                    ease: 'easeInOutSine'
+                }
+            );
+        }
     }
 
     setRadius(radius) {
-        this.settings.radius = radius;
+        if (this.settings.radius !== radius) {
+            this.settings.radius = radius;
 
-        this.init();
+            this.init();
+        }
+    }
+
+    setRotation(rotation, duration = 1000) {
+        if (this.settings.rotation !== rotation) {
+            this.settings.rotation = rotation;
+
+            this.PixiEaseList.to(
+                this.container,
+                {
+                    rotation: rotation
+                },
+                duration,
+                {
+                    ease: 'easeInOutSine'
+                }
+            );
+        }
     }
 
     /**
      * @param {Number}
      */
-    setScale(scale) {
-        this.settings.scale = scale;
+    setScale(scale, duration = 1000) {
+        if (this.settings.scale !== scale) {
+            this.settings.scale = scale;
 
-        this.PixiEaseList.to(
-            this.container,
-            {
-                scale: scale
-            },
-            1000,
-            {
-                ease: 'easeInOutSine'
-            }
-        );
+            this.PixiEaseList.to(
+                this.container,
+                {
+                    scale: scale
+                },
+                duration,
+                {
+                    ease: 'easeInOutSine'
+                }
+            );
+        }
     }
 
     /**
      * @param {Number}
      */
     setSize(size) {
-        this.settings.size = size;
+        if (this.settings.size !== size) {
+            this.settings.size = size;
 
-        this.init();
+            this.init();
+        }
     }
 
     /**
      * @param {Number} 0 - 1
      */
-    setOpacity(opacity) {
-        this.settings.opacity = opacity;
+    setOpacity(opacity, duration = 1000) {
+        if (this.settings.opacity !== opacity) {
+            this.settings.opacity = opacity;
 
-        this.PixiEaseList.to(
-            this.container,
-            {
-                alpha: opacity
-            },
-            1000,
-            {
-                ease: 'easeInOutSine'
-            }
-        );
+            this.PixiEaseList.to(
+                this.container,
+                {
+                    alpha: opacity
+                },
+                duration,
+                {
+                    ease: 'easeInOutSine'
+                }
+            );
+        }
     }
 }
