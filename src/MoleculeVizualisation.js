@@ -9,26 +9,9 @@ import PixiEase from '../node_modules/pixi-ease/dist/index';
 import RStats from '../node_modules/rstatsjs/src/rStats';
 
 /**
+ * Molecule Vizualisation.
  *
- * Paint mode
- *     - Save to a state.
- *
- *     - How to save transitions ?
- *         - Move emitters ?
- *         - Move bunch of molecules?
- * edit mode
- *     - to edit already placed molecules
- *     - turn off animations and show only original position.
- *
- * - Analyze mode:
- *     - feed a black and white texture and fill it in ?
- *         - research
- *
- * - Feed states and update molecules.
- *     - Need animation interpolation and easing.
- *     - Colour transitions as well.
- *
- * - zooming and scaling of vizualisation.
+ * Currently only resolution set to 1 are supported.
  */
 export default class MoleculeVizualisation {
     constructor(document, holderSelector, customSettings) {
@@ -57,6 +40,13 @@ export default class MoleculeVizualisation {
             targets: null,
             pointNodes: []
         };
+
+        /**
+         * Current active scale.
+         *
+         * @type {Number}
+         */
+        this.currentScale = 1;
 
         /**
          * This is the fallback default scale of the viz.
@@ -104,7 +94,9 @@ export default class MoleculeVizualisation {
             height: this.holder.clientHeight,
             antialias: true,    // default: false
             transparent: true, // default: false
-            resolution: 1       // default: 1
+
+            // Currently only resolution set to 1 are supported.
+            resolution: 1 // default: 1
         });
 
         this.moleculeEmitters = [];
@@ -370,6 +362,9 @@ export default class MoleculeVizualisation {
     }
 
     setState(state) {
+        this.removeEmittersNotFoundInState(state);
+
+        // Update existing or import new emitters.
         for (let i = 0; i < state.emitters.length; i++) {
             // Try to find an emitter with the same id.
             const foundEmitter = this.findEmitterById(state.emitters[i].id);
@@ -379,6 +374,35 @@ export default class MoleculeVizualisation {
             } else {
                 this.importEmitter(state.emitters[i]);
             }
+        }
+    }
+
+    /**
+     * @param {Object} state
+     */
+    removeEmittersNotFoundInState(state) {
+        const moleculeEmittersToRemove = [];
+
+        // get all the ids of the new emitters.
+        const newEmitterIds = state.emitters.map(emitter => {
+            return emitter.id;
+        });
+
+        // Loop over existing emitters and see if they are in the new state.
+        for (let i = 0; i < this.moleculeEmitters.length; i++) {
+            const emitter = this.moleculeEmitters[i];
+
+            if (newEmitterIds.indexOf(emitter.id) === -1) {
+                // do not remove emitters here because
+                // the array we are looping over will be
+                // edited in place.
+                moleculeEmittersToRemove.push(emitter);
+            }
+        }
+
+        // Remove obsolete emitters.
+        for (let i = 0; i < moleculeEmittersToRemove.length; i++) {
+            this.removeEmitter(moleculeEmittersToRemove[i]);
         }
     }
 
@@ -429,14 +453,23 @@ export default class MoleculeVizualisation {
 
         const stage = this.pixiApp.stage;
         const screen = this.pixiApp.screen;
+        const renderer = this.pixiApp.renderer;
 
-        if (state.originalDimension.height !== this.pixiApp.screen.height) {
-            heightScaleDiff = this.pixiApp.screen.height / state.originalDimension.height;
+        if (state.originalDimension.height !== screen.height) {
+            heightScaleDiff = screen.height / state.originalDimension.height;
         }
 
-        if (state.originalDimension.width !== this.pixiApp.screen.width) {
-            widthScaleDiff = this.pixiApp.screen.width / state.originalDimension.width;
+        if (state.originalDimension.width !== screen.width) {
+            widthScaleDiff = screen.width / state.originalDimension.width;
         }
+
+        // if (state.originalDimension.height !== this.pixiApp.screen.height) {
+        //     heightScaleDiff = this.pixiApp.screen.height / state.originalDimension.height;
+        // }
+
+        // if (state.originalDimension.width !== this.pixiApp.screen.width) {
+        //     widthScaleDiff = this.pixiApp.screen.width / state.originalDimension.width;
+        // }
 
         if (heightScaleDiff < widthScaleDiff) {
             scale = heightScaleDiff;
@@ -446,22 +479,23 @@ export default class MoleculeVizualisation {
 
         this.importState(state);
 
+        scale /= renderer.resolution;
         this.defaultScale = scale;
+
+        stage.pivot.x = stage.width / 2;
+        stage.pivot.y = stage.height / 2;
 
         // Set scale on stage.
         stage.scale.x = scale;
         stage.scale.y = scale;
 
+        stage.x = screen.width / 2 / renderer.resolution;
+        stage.y = screen.height / 2 / renderer.resolution;
 
-        stage.x = screen.width / 2;
-        stage.y = screen.height / 2;
+        // stage.x = 0;
+        // stage.y = 0;
 
-        stage.pivot.x = stage.width / 2 / scale;
-        stage.pivot.y = stage.height / 2 / scale;
-
-        // Center after scaling.
-        // stage.centerXY(screen.width, screen.height);
-
+        console.log('stage', stage, screen, renderer, scale);
         return this;
     }
 
@@ -504,8 +538,7 @@ export default class MoleculeVizualisation {
                 offsetX: offsetX,
                 offsetY: offsetY,
                 offsetIsRelative: offsetIsRelative
-            })
-            // this.zoomOnCoordinates(pos.x, pos.y, scale, offsetX, offsetY);
+            });
         } else {
             console.log('Cannot zoom on non-existing emitter', id);
         }
@@ -522,8 +555,8 @@ export default class MoleculeVizualisation {
     }
 
     zoomOnCoordinates(options) {
-    // zoomOnCoordinates(x, y, scale, offsetX = 0, offsetY = 0, offsetIsRelative = false, duration = 1000) {
         const renderer = this.pixiApp.renderer;
+        const screen = this.pixiApp.screen;
 
         this.endCurrentZoomAnimation();
 
@@ -531,13 +564,11 @@ export default class MoleculeVizualisation {
             options.duration = 1000;
         }
 
-        // console.log(x, y, scale, offsetX, offsetY);
-
         this.zoomAnimation = this.PixiEaseList.to(
             this.pixiApp.stage,
             {
-                x: renderer.width / 2,
-                y: renderer.height / 2,
+                x: screen.width / 2,
+                y: screen.height / 2,
                 scale: options.scale,
                 pivot: {
                     x: options.x + options.offsetX,
@@ -549,9 +580,14 @@ export default class MoleculeVizualisation {
                 ease: 'easeInOutSine'
             }
         );
+
+        this.currentScale = options.scale;
     }
 
     resetZoom(duration = 1000) {
+        const screen = this.pixiApp.screen;
+        const stage = this.pixiApp.stage;
+
         const stageScale = this.pixiApp.stage.scale;
         if (stageScale.x !== this.defaultScale && stageScale.y !== this.defaultScale) {
             this.endCurrentZoomAnimation();
@@ -559,12 +595,13 @@ export default class MoleculeVizualisation {
             this.zoomAnimation = this.PixiEaseList.to(
                 this.pixiApp.stage,
                 {
-                    x: 0,
-                    y: 0,
+                    x: screen.width / 2,
+                    y: screen.height / 2,
                     scale: this.defaultScale,
                     pivot: {
-                        x: 0,
-                        y: 0
+                        // Divide by the current scale to get the original size.
+                        x: (stage.width / this.currentScale) / 2,
+                        y: (stage.height / this.currentScale) / 2
                     }
                 },
                 duration,

@@ -372,6 +372,13 @@ export default class Molecule {
      * Getters
      */
 
+    getLocalPosition() {
+        return {
+            x: this.settings.x,
+            y: this.settings.y
+        };
+    }
+
     /**
      * @return {{
      *         x: Number,
@@ -383,6 +390,13 @@ export default class Molecule {
             x: this.container.worldTransform.x,
             y: this.container.worldTransform.y
         };
+    }
+
+    /**
+     * @return {Number}
+     */
+    getRotation() {
+        return this.settings.rotation;
     }
 
     /**

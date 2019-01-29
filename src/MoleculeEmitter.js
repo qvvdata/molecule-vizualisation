@@ -414,6 +414,13 @@ export default class MoleculeEmitter {
     }
 
     /**
+     * @return {Array.<Molecules>}
+     */
+    getMolecules() {
+        return this.molecules;
+    }
+
+    /**
      * Setters
      */
 
