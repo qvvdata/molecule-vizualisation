@@ -29,6 +29,7 @@
   },
   "dependencies": {
     "dat.gui": "^0.7.5",
+    "pixi-center": "^1.0.11",
     "pixi-ease": "^1.1.2",
     "pixi.js": "^4.8.5",
     "rstatsjs": "github:spite/rstats",

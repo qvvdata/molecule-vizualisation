@@ -4,6 +4,7 @@ import MlcvEditor from './MoleculeVizualisationEditor';
 import Molecule from './Molecule';
 import MoleculeEmitter from './MoleculeEmitter';
 import * as PIXI from '../node_modules/pixi.js/dist/pixi';
+import PixiCenter from '../node_modules/pixi-center/lib/pixi-center';
 import PixiEase from '../node_modules/pixi-ease/dist/index';
 import RStats from '../node_modules/rstatsjs/src/rStats';
 
@@ -94,8 +95,6 @@ export default class MoleculeVizualisation {
          * @type {Object}
          */
         this.settings = Helpers.mergeDeep(this.defaultSettings, customSettings);
-
-
 
         /**
          * @type {PIXIE.app}
@@ -428,6 +427,9 @@ export default class MoleculeVizualisation {
         let widthScaleDiff = 1;
         let scale = 1;
 
+        const stage = this.pixiApp.stage;
+        const screen = this.pixiApp.screen;
+
         if (state.originalDimension.height !== this.pixiApp.screen.height) {
             heightScaleDiff = this.pixiApp.screen.height / state.originalDimension.height;
         }
@@ -444,10 +446,21 @@ export default class MoleculeVizualisation {
 
         this.importState(state);
 
-        this.pixiApp.stage.scale.x = scale;
-        this.pixiApp.stage.scale.y = scale;
-
         this.defaultScale = scale;
+
+        // Set scale on stage.
+        stage.scale.x = scale;
+        stage.scale.y = scale;
+
+
+        stage.x = screen.width / 2;
+        stage.y = screen.height / 2;
+
+        stage.pivot.x = stage.width / 2 / scale;
+        stage.pivot.y = stage.height / 2 / scale;
+
+        // Center after scaling.
+        // stage.centerXY(screen.width, screen.height);
 
         return this;
     }
@@ -478,12 +491,21 @@ export default class MoleculeVizualisation {
         this.zoomOnEmitterWithId(id, this.pixiApp.stage.scale.x, offsetX, offsetY);
     }
 
-    zoomOnEmitterWithId(id, scale, offsetX = 0, offsetY = 0) {
+    zoomOnEmitterWithId(id, scale, offsetX = 0, offsetY = 0, offsetIsRelative = false) {
         const emitter = this.findEmitterById(id);
 
         if (emitter !== null) {
-            const pos = emitter.getPosition();
-            this.zoomOnCoordinates(pos.x, pos.y, scale, offsetX, offsetY);
+            const pos = emitter.getLocalPosition();
+
+            this.zoomOnCoordinates({
+                x: pos.x,
+                y: pos.y,
+                scale: scale,
+                offsetX: offsetX,
+                offsetY: offsetY,
+                offsetIsRelative: offsetIsRelative
+            })
+            // this.zoomOnCoordinates(pos.x, pos.y, scale, offsetX, offsetY);
         } else {
             console.log('Cannot zoom on non-existing emitter', id);
         }
@@ -499,23 +521,30 @@ export default class MoleculeVizualisation {
         this.zoomAnimation = null;
     }
 
-    zoomOnCoordinates(x, y, scale, offsetX = 0, offsetY = 0, duration = 1000) {
+    zoomOnCoordinates(options) {
+    // zoomOnCoordinates(x, y, scale, offsetX = 0, offsetY = 0, offsetIsRelative = false, duration = 1000) {
         const renderer = this.pixiApp.renderer;
 
         this.endCurrentZoomAnimation();
 
-        this.PixiEaseList.to(
+        if (typeof options.duration !== 'number') {
+            options.duration = 1000;
+        }
+
+        // console.log(x, y, scale, offsetX, offsetY);
+
+        this.zoomAnimation = this.PixiEaseList.to(
             this.pixiApp.stage,
             {
                 x: renderer.width / 2,
                 y: renderer.height / 2,
-                scale: scale,
+                scale: options.scale,
                 pivot: {
-                    x: x - offsetX,
-                    y: y - offsetY
+                    x: options.x + options.offsetX,
+                    y: options.y + options.offsetY
                 }
             },
-            duration,
+            options.duration,
             {
                 ease: 'easeInOutSine'
             }

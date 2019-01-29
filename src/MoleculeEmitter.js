@@ -406,10 +406,10 @@ export default class MoleculeEmitter {
      *         y: Number
      * }}
      */
-    getPosition() {
+    getLocalPosition() {
         return {
-            x: this.container.x * this.mlcv.defaultScale,
-            y: this.container.y * this.mlcv.defaultScale
+            x: this.container.x,
+            y: this.container.y
         };
     }
 
