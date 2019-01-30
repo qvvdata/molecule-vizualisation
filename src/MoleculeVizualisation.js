@@ -58,6 +58,24 @@ export default class MoleculeVizualisation {
         this.defaultScale = 1;
 
         /**
+         * We save the width of the stage when the 
+         * default state is imported. We need it
+         * for later calculations.
+         * 
+         * @type {Number}
+         */
+        this.defaultStageWidth = 0;
+
+        /**
+         * We save the height of the stage when the 
+         * default state is imported. We need it
+         * for later calculations.
+         * 
+         * @type {Number}
+         */
+        this.defaultStageHeight = 0;
+
+        /**
          * Will be overwritten by custom settings.
          *
          * @type {Object}
@@ -447,13 +465,11 @@ export default class MoleculeVizualisation {
      * @return {MoleculeVizualisation}
      */
     importDefaultState(state) {
+        const stage = this.pixiApp.stage;
+        const screen = this.pixiApp.screen;
         let heightScaleDiff = 1;
         let widthScaleDiff = 1;
         let scale = 1;
-
-        const stage = this.pixiApp.stage;
-        const screen = this.pixiApp.screen;
-        const renderer = this.pixiApp.renderer;
 
         if (state.originalDimension.height !== screen.height) {
             heightScaleDiff = screen.height / state.originalDimension.height;
@@ -463,14 +479,6 @@ export default class MoleculeVizualisation {
             widthScaleDiff = screen.width / state.originalDimension.width;
         }
 
-        // if (state.originalDimension.height !== this.pixiApp.screen.height) {
-        //     heightScaleDiff = this.pixiApp.screen.height / state.originalDimension.height;
-        // }
-
-        // if (state.originalDimension.width !== this.pixiApp.screen.width) {
-        //     widthScaleDiff = this.pixiApp.screen.width / state.originalDimension.width;
-        // }
-
         if (heightScaleDiff < widthScaleDiff) {
             scale = heightScaleDiff;
         } else {
@@ -479,23 +487,21 @@ export default class MoleculeVizualisation {
 
         this.importState(state);
 
-        scale /= renderer.resolution;
         this.defaultScale = scale;
+        // We must save this before applying the scale.
+        this.defaultStageWidth = stage.width;
+        this.defaultStageHeight = stage.height;
 
         stage.pivot.x = stage.width / 2;
         stage.pivot.y = stage.height / 2;
 
-        // Set scale on stage.
+        // // Set scale on stage.
         stage.scale.x = scale;
         stage.scale.y = scale;
 
-        stage.x = screen.width / 2 / renderer.resolution;
-        stage.y = screen.height / 2 / renderer.resolution;
+        stage.x = screen.width / 2;
+        stage.y = screen.height / 2;
 
-        // stage.x = 0;
-        // stage.y = 0;
-
-        console.log('stage', stage, screen, renderer, scale);
         return this;
     }
 
@@ -555,7 +561,6 @@ export default class MoleculeVizualisation {
     }
 
     zoomOnCoordinates(options) {
-        const renderer = this.pixiApp.renderer;
         const screen = this.pixiApp.screen;
 
         this.endCurrentZoomAnimation();
@@ -600,8 +605,8 @@ export default class MoleculeVizualisation {
                     scale: this.defaultScale,
                     pivot: {
                         // Divide by the current scale to get the original size.
-                        x: (stage.width / this.currentScale) / 2,
-                        y: (stage.height / this.currentScale) / 2
+                        x: this.defaultStageWidth / 2,
+                        y: this.defaultStageHeight / 2
                     }
                 },
                 duration,

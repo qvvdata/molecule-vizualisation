@@ -44,7 +44,7 @@ export default class MoleculeVizualisationEditor {
         /**
          * @type {PIXI.Sprite}
          */
-        this.referenceImage = PIXI.Sprite.fromImage('./../example/img/reference.png');
+        this.referenceImage = PIXI.Sprite.fromImage('./../example/img/reference-organs.png');
 
         /**
          * @type {Number}
@@ -179,8 +179,6 @@ export default class MoleculeVizualisationEditor {
         emitter.on('click', this.onClickEmitter.bind(this, emitter), 'dragGizmo');
     }
 
-
-
     toggleAnimation() {
         // Todo.
     }
@@ -263,8 +261,9 @@ export default class MoleculeVizualisationEditor {
             folder.add(this, 'duplicateSelectedEmitter').name('Duplicate');
         }
 
+        folder.add(emitter, 'id').name('ID');
         const mlcColorContr = folder.addColor(emitter.settings, 'color');
-        const mlcAmountContr = folder.add(emitter.settings, 'moleculeAmount', 1, 150).step(1).name('Molecule amount');
+        const mlcAmountContr = folder.add(emitter.settings, 'moleculeAmount', 0, 150).step(1).name('Molecule amount');
         const spawnRadiusContr = folder.add(emitter.settings, 'spawnRadius', 0, 400).step(1).name('Spawn radius');
         const moleculeSizeContr = folder.add(emitter.settings, 'moleculeSize', 0, 500).step(1).name('Molecule Size');
         const moleculePointRadiusContr = folder.add(emitter.settings, 'moleculePointRadius', 0, 250).step(0.1).name('Point radius');
