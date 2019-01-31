@@ -589,9 +589,8 @@ export default class MoleculeVizualisation {
         this.currentScale = options.scale;
     }
 
-    resetZoom(duration = 1000) {
+    resetZoom(duration = 1000, callback) {
         const screen = this.pixiApp.screen;
-        const stage = this.pixiApp.stage;
 
         const stageScale = this.pixiApp.stage.scale;
         if (stageScale.x !== this.defaultScale && stageScale.y !== this.defaultScale) {
@@ -614,6 +613,14 @@ export default class MoleculeVizualisation {
                     ease: 'easeInOutSine'
                 }
             );
+
+            if (typeof callback === 'function') {
+                this.zoomAnimation.on('done', callback);
+            }
+        } else if (typeof callback === 'function') {
+            // We must run the callback no matter if we zoom or not.
+            // if it is a function off course.
+            callback();
         }
     }
 }
