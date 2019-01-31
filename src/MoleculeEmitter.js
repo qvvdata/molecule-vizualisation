@@ -555,15 +555,19 @@ export default class MoleculeEmitter {
             let molecule = this.findMoleculeById(state.id);
 
             if (molecule !== null) {
-                molecule.setState(state);
+                if (typeof state.delay === 'number' && state.delay > 0) {
+                    setTimeout(() => {
+                        molecule.setState(state);
+                    }, state.delay);
+                } else {
+                    molecule.setState(state);
+                }
             } else {
                 molecule = this.generateMolecule(state.id, this.mlcv, state.settings);
 
                 this.addMolecule(molecule);
             }
         }
-
-
     }
 
     addMolecule(molecule) {

@@ -264,7 +264,7 @@ export default class Molecule {
     }
 
     render(elapsed) {
-        this.container.rotation -= (0.01 * this.container.scale.x);
+        this.container.rotation -= (0.005 * this.container.scale.x);
         this.settings.rotation = this.container.rotation;
         // this.moveAnimation.update(elapsed);
     }
@@ -476,7 +476,7 @@ export default class Molecule {
                 },
                 duration,
                 {
-                    ease: 'easeInOutSine'
+                    ease: 'easeInOutCubic'
                 }
             );
         }
@@ -493,7 +493,7 @@ export default class Molecule {
                 },
                 duration,
                 {
-                    ease: 'easeInOutSine'
+                    ease: 'easeInOutCubic'
                 }
             );
         }
