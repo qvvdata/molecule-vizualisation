@@ -576,8 +576,8 @@ export default class MoleculeVizualisation {
                 y: screen.height / 2,
                 scale: options.scale,
                 pivot: {
-                    x: options.x + options.offsetX,
-                    y: options.y + options.offsetY
+                    x: options.x - options.offsetX,
+                    y: options.y - options.offsetY
                 }
             },
             options.duration,

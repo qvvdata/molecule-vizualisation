@@ -406,30 +406,31 @@ export default class Molecule {
     /**
      * @param {Number} color In Hex.
      */
-    setColor(color, duration = 1000) {
+    setColor(color, duration = 1000, options = {}) {
         if (this.settings.color !== color) {
+            if (!options.ease) {
+                options.ease = 'easeInOutCubic';
+            }
+
             this.PixiEaseList.tint(
                 this.endPointLeft,
                 color,
-                duration, {
-                    ease: 'easeInOutSine'
-                }
+                duration,
+                options
             );
 
             this.PixiEaseList.tint(
                 this.endPointRight,
                 color,
-                duration, {
-                    ease: 'easeInOutSine'
-                }
+                duration,
+                options
             );
 
             this.PixiEaseList.tint(
                 this.connectingLine,
                 color,
-                duration, {
-                    ease: 'easeInOutSine'
-                }
+                duration,
+                options
             );
 
             this.settings.color = color;
