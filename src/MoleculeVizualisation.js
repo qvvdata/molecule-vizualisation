@@ -117,9 +117,11 @@ export default class MoleculeVizualisation {
             resolution: 1 // default: 1
         });
 
+        this.pixiApp.renderer.plugins.interaction.autoPreventDefault = false;
+        this.pixiApp.renderer.view.style.touchAction = 'auto';
+
         this.moleculeEmitters = [];
         this.molecules = [];
-
 
         /**
          * Animation properties.
