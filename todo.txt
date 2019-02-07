@@ -2,3 +2,6 @@
     - Currently if you set resolution to anything higher than 1 the zooming breaks.
     - see window.devicePixelRation and check on retina display
     - Performance does take quite a hit.
+
+- Clear time outs when a new state has been set
+    or it will overwrite the older ones.
