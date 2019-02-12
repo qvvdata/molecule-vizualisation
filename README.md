@@ -2,10 +2,7 @@
 
 A library for creating 2D molecule like visualisations.
 
-<video width="100%" muted loop autoplay preload="auto">
-  <source src="./readme-video.mp4" type="video/mp4">
-</video>
-
+![video](./readme-video.gif)
 
 ## Developing
 
