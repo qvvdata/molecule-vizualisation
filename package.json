@@ -25,7 +25,7 @@
     "babel-loader": "^8.0.5",
     "eslint-config-qvvdata": "github:qvvdata/eslint-config-qvvdata",
     "webpack": "^4.28.1",
-    "webpack-cli": "^3.2.1"
+    "webpack-cli": "^3.3.12"
   },
   "dependencies": {
     "dat.gui": "^0.7.5",
